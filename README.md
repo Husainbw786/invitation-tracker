@@ -26,26 +26,27 @@ npm install
 npm run dev
 ```
 
-Without any configuration the app runs in **local mode**: data is stored in the
-browser (localStorage) and login uses the built-in accounts in
-`src/lib/auth.js`. Good for trying it out on one device.
+## Logins
 
-## Go live (shared data for the whole family) — Firebase
+Accounts are defined in [`src/lib/auth.js`](src/lib/auth.js) — edit that file to
+change emails/passwords or add more accounts for relatives (each account is
+assigned to one side: `husain` or `zainab`).
 
-1. Create a free project at [console.firebase.google.com](https://console.firebase.google.com).
-2. **Authentication → Sign-in method**: enable *Email/Password*, then under
-   *Users* add the two accounts (Husain's and Zainab's emails with proper passwords).
-3. **Firestore Database**: create a database, then paste the contents of
-   [`firestore.rules`](firestore.rules) under the *Rules* tab.
-4. **Project settings → Your apps → Web app**: register an app and copy the
-   config values into a `.env` file (see [`.env.example`](.env.example)).
-5. `npm run build` and deploy the `dist/` folder anywhere (Vercel / Netlify free
-   tier). Set the same env vars in the hosting dashboard.
+## Data
 
-To give more relatives access, add their email in **two places**: Firebase
-Authentication (create the user) and `SIDE_BY_EMAIL` in
-[`src/lib/auth.js`](src/lib/auth.js) (which side they belong to).
+All data is saved in the browser (localStorage) on the device where it was
+entered. It survives reloads and works offline, but is **not shared between
+devices** — each phone/laptop keeps its own list. Use **Export CSV** to move or
+back up the list.
+
+## Deploy
+
+```bash
+npm run build
+```
+
+Deploy the `dist/` folder to any static host (Vercel / Netlify / GitHub Pages).
 
 ## Tech
 
-React + Vite · Firebase Auth + Firestore (with localStorage fallback) · no other dependencies.
+React + Vite · localStorage · no backend, no other dependencies.

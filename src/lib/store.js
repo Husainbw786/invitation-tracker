@@ -1,90 +1,54 @@
-// Data layer for the app. Same API in both modes (components never change):
-//  - Firebase mode: Firestore `families` collection with realtime sync,
-//    so every phone sees updates instantly.
-//  - Local mode: localStorage on this device only.
-
-import { app, firebaseEnabled } from './firebase.js'
+// Data layer: families are saved in the browser (localStorage).
+// Data stays on the device it was entered on — it survives reloads
+// and works offline.
 
 const STORAGE_KEY = 'wedding-invites:families:v2'
 
-let families = []
+let families = load()
 let listeners = []
-let fs = null // firestore module + db, loaded lazily in firebase mode
-let started = false
 
-function notify() {
-  listeners.forEach((fn) => fn(families))
-}
-
-async function start() {
-  if (started) return
-  started = true
-  if (firebaseEnabled) {
-    const firestore = await import('firebase/firestore')
-    const db = firestore.getFirestore(app)
-    fs = { ...firestore, db }
-    firestore.onSnapshot(
-      firestore.query(firestore.collection(db, 'families'), firestore.orderBy('createdAt')),
-      (snap) => {
-        families = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-        notify()
-      },
-      (err) => console.error('Firestore sync error', err)
-    )
-  } else {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      families = raw ? JSON.parse(raw) : []
-    } catch (e) {
-      console.error('Failed to load saved data', e)
-      families = []
-    }
-    notify()
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch (e) {
+    console.error('Failed to load saved data', e)
   }
+  return []
 }
 
-function persistLocal() {
+function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(families))
-  notify()
+  listeners.forEach((fn) => fn(families))
 }
 
 export function subscribe(fn) {
   listeners.push(fn)
   fn(families)
-  start()
   return () => {
     listeners = listeners.filter((l) => l !== fn)
   }
 }
 
-export async function addFamily(data) {
-  const family = { ...data, createdAt: Date.now() }
-  if (firebaseEnabled && fs) {
-    await fs.addDoc(fs.collection(fs.db, 'families'), family)
-    return family
+export function addFamily(data) {
+  const family = {
+    ...data,
+    id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    createdAt: Date.now(),
   }
-  family.id = 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
   families = [...families, family]
-  persistLocal()
+  persist()
   return family
 }
 
-export async function updateFamily(id, patch) {
-  if (firebaseEnabled && fs) {
-    await fs.updateDoc(fs.doc(fs.db, 'families', id), patch)
-    return
-  }
+export function updateFamily(id, patch) {
   families = families.map((f) => (f.id === id ? { ...f, ...patch } : f))
-  persistLocal()
+  persist()
 }
 
-export async function deleteFamily(id) {
-  if (firebaseEnabled && fs) {
-    await fs.deleteDoc(fs.doc(fs.db, 'families', id))
-    return
-  }
+export function deleteFamily(id) {
   families = families.filter((f) => f.id !== id)
-  persistLocal()
+  persist()
 }
 
 // How many people a family counts for: listed members, else the manual
