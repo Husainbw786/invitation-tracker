@@ -1,0 +1,115 @@
+import { useEffect, useMemo, useState } from 'react'
+import { subscribe } from './lib/store.js'
+import { getSession, logout } from './lib/auth.js'
+import Dashboard from './components/Dashboard.jsx'
+import FamilyList from './components/FamilyList.jsx'
+import FamilyForm from './components/FamilyForm.jsx'
+import Login from './components/Login.jsx'
+
+const EMPTY_FILTERS = { search: '', city: null, tag: null, gift: null, cardStatus: null }
+
+export default function App() {
+  const [session, setSession] = useState(getSession)
+  const [allFamilies, setAllFamilies] = useState([])
+  const [tab, setTab] = useState('dashboard') // 'dashboard' | 'list'
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [editing, setEditing] = useState(null) // null | 'new' | family object
+
+  useEffect(() => subscribe(setAllFamilies), [])
+
+  // Each side (Husain's / Zainab's family) only sees its own list.
+  const families = useMemo(
+    () => (session ? allFamilies.filter((f) => f.side === session.side) : []),
+    [allFamilies, session]
+  )
+
+  const cities = useMemo(
+    () => [...new Set(families.map((f) => f.city.trim()).filter(Boolean))].sort(),
+    [families]
+  )
+  const tags = useMemo(
+    () => [...new Set(families.flatMap((f) => f.tags || []))].sort(),
+    [families]
+  )
+
+  if (!session) {
+    return <Login onLogin={setSession} />
+  }
+
+  function openListWithFilter(patch) {
+    setFilters({ ...EMPTY_FILTERS, ...patch })
+    setTab('list')
+  }
+
+  function handleLogout() {
+    logout()
+    setSession(null)
+    setTab('dashboard')
+    setFilters(EMPTY_FILTERS)
+  }
+
+  return (
+    <div className="app">
+      <header className="topbar">
+        <div className="topbar-inner">
+          <div className="brand">
+            <span className="brand-photo-wrap">
+              <img src="/couple-art1.jpeg" alt="Couple" className="brand-photo" />
+            </span>
+            <div>
+              <h1>Husain ♥ Zainab</h1>
+              <p>👪 {session.label}</p>
+            </div>
+          </div>
+          <div className="topbar-actions">
+            <button className="btn btn-primary" onClick={() => setEditing('new')}>
+              + Add Family
+            </button>
+            <button className="logout-btn" onClick={handleLogout} title="Logout">
+              ⎋<span className="logout-text"> Logout</span>
+            </button>
+          </div>
+        </div>
+        <nav className="tabs">
+          <button
+            className={tab === 'dashboard' ? 'tab active' : 'tab'}
+            onClick={() => setTab('dashboard')}
+          >
+            Dashboard
+          </button>
+          <button
+            className={tab === 'list' ? 'tab active' : 'tab'}
+            onClick={() => setTab('list')}
+          >
+            Families
+          </button>
+        </nav>
+      </header>
+
+      <main className="content">
+        {tab === 'dashboard' ? (
+          <Dashboard families={families} onDrillDown={openListWithFilter} />
+        ) : (
+          <FamilyList
+            families={families}
+            cities={cities}
+            tags={tags}
+            filters={filters}
+            setFilters={setFilters}
+            onEdit={(f) => setEditing(f)}
+          />
+        )}
+      </main>
+
+      {editing && (
+        <FamilyForm
+          family={editing === 'new' ? null : editing}
+          side={session.side}
+          cities={cities}
+          tags={tags}
+          onClose={() => setEditing(null)}
+        />
+      )}
+    </div>
+  )
+}

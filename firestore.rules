@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Only logged-in users (Husain's & Zainab's accounts created in
+// Firebase Authentication) can read or write the guest list.
+// Paste these rules in: Firebase console → Firestore Database → Rules.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /families/{familyId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

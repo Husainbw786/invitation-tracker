@@ -1,0 +1,928 @@
+:root {
+  --rose: #d81b60;
+  --rose-deep: #ad1457;
+  --rose-soft: #f06292;
+  --blush: #fff0f5;
+  --blush-2: #ffe3ec;
+  --pink-border: #f8c8d8;
+  --gold: #d9a441;
+  --ink: #4a2233;
+  --muted: #a06478;
+  --card: rgba(255, 255, 255, 0.86);
+  --green: #2e7d4f;
+  --amber: #b07818;
+  --red: #c2413a;
+  --radius: 16px;
+  --shadow: 0 4px 18px rgba(216, 27, 96, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(180deg, #fff5f8 0%, #ffe9f0 60%, #ffdfe9 100%);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Couple artwork as a very light full-page watermark */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url('/couple-art2.jpeg');
+  background-size: cover;
+  background-position: center 30%;
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Top bar ---------- */
+.topbar {
+  background: linear-gradient(135deg, #f9a8c5 0%, #f383ad 55%, #ee6ba0 100%);
+  color: #fff;
+  padding: 12px 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 3px 16px rgba(238, 107, 160, 0.3);
+}
+
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-photo-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2.5px solid #ffd9e6;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+  background: #fff;
+}
+
+.brand-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.75) translateY(12%);
+}
+
+.brand h1 {
+  font-family: 'Great Vibes', 'Snell Roundhand', cursive;
+  font-size: 27px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(90, 8, 45, 0.35);
+  white-space: nowrap;
+}
+
+.brand p {
+  font-size: 10.5px;
+  color: #ffd9e6;
+  margin-top: 3px;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  max-width: 960px;
+  margin: 12px auto 0;
+  width: 100%;
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 12px 12px 0 0;
+}
+
+.tab.active {
+  background: #fff5f8;
+  color: var(--rose-deep);
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  border: 1px solid var(--pink-border);
+  background: #fff;
+  color: var(--ink);
+  padding: 9px 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #ff8fb1, #e91e63);
+  border: none;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(233, 30, 99, 0.45);
+  white-space: nowrap;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+.btn-small {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+.btn-danger {
+  color: var(--red);
+  border-color: #f3cdca;
+}
+
+.btn-gift.on {
+  background: var(--blush-2);
+  border-color: var(--rose-soft);
+  color: var(--rose-deep);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--rose);
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 10px;
+  text-decoration: underline;
+}
+
+/* ---------- Layout ---------- */
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 18px 16px 60px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--rose-deep);
+  margin: 28px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1.5px;
+  background: linear-gradient(90deg, var(--pink-border), transparent);
+  margin-left: 8px;
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background:
+    linear-gradient(120deg, rgba(255, 245, 248, 0.92), rgba(255, 227, 236, 0.92)),
+    url('/couple-painting.jpeg') center 35% / cover;
+  border: 1.5px solid var(--pink-border);
+  border-radius: 20px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+  margin-bottom: 18px;
+}
+
+.hero-photo {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #fff;
+  box-shadow: 0 3px 12px rgba(216, 27, 96, 0.25);
+  background: #fff;
+  flex-shrink: 0;
+  display: block;
+}
+
+.hero-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(2.1) translateY(4%);
+}
+
+.hero-photo-right img {
+  transform: scale(1.75) translateY(12%);
+}
+
+.hero-text {
+  text-align: center;
+}
+
+.hero-script {
+  font-family: 'Great Vibes', 'Snell Roundhand', cursive;
+  font-size: 40px;
+  color: var(--rose-deep);
+  line-height: 1.1;
+}
+
+.hero-sub {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* ---------- Dashboard ---------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--card);
+  backdrop-filter: blur(6px);
+  border: 1.5px solid var(--pink-border);
+  border-radius: var(--radius);
+  padding: 16px 14px;
+  text-align: left;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+button.stat-card:active {
+  transform: scale(0.98);
+}
+
+.stat-value {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--rose);
+  line-height: 1;
+}
+
+.stat-value small {
+  font-size: 16px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.city-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.city-card {
+  background: var(--card);
+  backdrop-filter: blur(6px);
+  border: 1.5px solid var(--pink-border);
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: left;
+  box-shadow: var(--shadow);
+  border-top: 4px solid var(--rose-soft);
+}
+
+.city-card:active {
+  transform: scale(0.98);
+}
+
+.city-card h3 {
+  font-size: 17px;
+  color: var(--rose-deep);
+  margin-bottom: 4px;
+}
+
+.city-card p {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.city-cards-line {
+  color: var(--muted) !important;
+  margin-top: 2px;
+}
+
+.progress {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--blush-2);
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f06292, #d81b60);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+/* ---------- Tags ---------- */
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-chip {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid var(--rose-soft);
+  color: var(--rose-deep);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tag-chip.selected {
+  background: linear-gradient(135deg, #f06292, #d81b60);
+  border-color: transparent;
+  color: #fff;
+}
+
+.tag-chip.small {
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: default;
+}
+
+.tag-count {
+  background: var(--rose);
+  color: #fff;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+/* ---------- Family list ---------- */
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--pink-border);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 15px;
+}
+
+.search-input:focus,
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.inline-add input:focus {
+  outline: 2px solid var(--rose-soft);
+  outline-offset: 0;
+  border-color: transparent;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-row select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--pink-border);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.gift-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gift-filter input {
+  accent-color: var(--rose);
+}
+
+.list-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.list-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cards {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.family-card {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 251, 253, 0.94)),
+    url('/couple-sticker.jpeg') right -20px center / 180px auto no-repeat;
+  border: 1.5px solid var(--pink-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.family-head {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  background: none;
+  border: none;
+  text-align: left;
+}
+
+.family-title h3 {
+  font-size: 16px;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+
+.family-title p {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.status-pill {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.status-pending {
+  background: #fdeaea;
+  color: var(--red);
+}
+
+.status-written {
+  background: #fdf3dd;
+  color: var(--amber);
+}
+
+.status-delivered {
+  background: #e3f2e9;
+  color: var(--green);
+}
+
+.quick-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 14px 12px;
+  flex-wrap: wrap;
+}
+
+.family-detail {
+  border-top: 1.5px dashed var(--pink-border);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  background: rgba(255, 248, 251, 0.9);
+}
+
+.family-detail a {
+  color: var(--rose);
+  font-weight: 600;
+}
+
+.detail-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.notes {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.empty-hint {
+  color: var(--muted);
+  font-size: 14px;
+  padding: 20px 0;
+  text-align: center;
+}
+
+/* ---------- Modal form ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(74, 15, 42, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  background:
+    linear-gradient(180deg, rgba(255, 248, 251, 0.94), rgba(255, 238, 244, 0.95)),
+    url('/couple-art1.jpeg') center 40% / cover no-repeat;
+  width: 100%;
+  max-width: 560px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-radius: 22px 22px 0 0;
+  padding: 18px 18px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1.5px solid var(--pink-border);
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-head h2 {
+  font-family: 'Great Vibes', 'Snell Roundhand', cursive;
+  font-weight: 400;
+  font-size: 32px;
+  color: var(--rose-deep);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--muted);
+  padding: 4px 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field > span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rose-deep);
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--pink-border);
+  background: #fff;
+  font-size: 15px;
+  width: 100%;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.inline-add {
+  display: flex;
+  gap: 8px;
+}
+
+.inline-add input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--pink-border);
+  font-size: 15px;
+  background: #fff;
+}
+
+.member-pills {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.member-pills li {
+  background: #fff;
+  border: 1.5px solid var(--pink-border);
+  border-radius: 999px;
+  padding: 5px 6px 5px 12px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.member-pills button {
+  background: var(--blush-2);
+  border: none;
+  border-radius: 999px;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  color: var(--rose-deep);
+}
+
+.count-input {
+  margin-top: 6px;
+}
+
+.field-row {
+  display: flex;
+  gap: 14px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.field-row .field {
+  flex: 1;
+}
+
+.toggle-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 0;
+}
+
+.toggle-field input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--rose);
+}
+
+.form-error {
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* ---------- Login ---------- */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-card {
+  background:
+    linear-gradient(180deg, rgba(255, 248, 251, 0.95), rgba(255, 238, 244, 0.96)),
+    url('/couple-painting.jpeg') center 30% / cover no-repeat;
+  border: 1.5px solid var(--pink-border);
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(216, 27, 96, 0.18);
+  padding: 30px 26px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+
+.login-photo {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 16px rgba(216, 27, 96, 0.25);
+  background: #fff;
+  margin: 0 auto;
+  display: block;
+}
+
+.login-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(2.1) translateY(4%);
+}
+
+.login-title {
+  font-family: 'Great Vibes', 'Snell Roundhand', cursive;
+  font-size: 42px;
+  font-weight: 400;
+  color: var(--rose-deep);
+  line-height: 1.1;
+}
+
+.login-sub {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-top: -8px;
+}
+
+.login-card .field {
+  text-align: left;
+}
+
+.login-btn {
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 14px;
+  margin-top: 4px;
+}
+
+.login-hint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ---------- Topbar actions ---------- */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logout-btn {
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* ---------- Desktop ---------- */
+@media (min-width: 700px) {
+  .stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .modal-backdrop {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .modal {
+    border-radius: 22px;
+  }
+
+  .hero-photo {
+    width: 92px;
+    height: 92px;
+  }
+
+  .hero-script {
+    font-size: 52px;
+  }
+
+  .hero-sub {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-photo-right {
+    display: none;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand h1 {
+    font-size: 21px;
+  }
+
+  .brand p {
+    font-size: 9.5px;
+  }
+
+  .brand-photo-wrap {
+    width: 44px;
+    height: 44px;
+  }
+
+  .btn-primary {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .logout-btn {
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 560px) {
+  .logout-text {
+    display: none;
+  }
+}
