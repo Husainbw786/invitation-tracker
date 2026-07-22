@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X, Plus, Gift, Warning } from '@phosphor-icons/react'
 import { addFamily, updateFamily, CARD_STATUS_LABELS } from '../lib/store.js'
 
 export default function FamilyForm({ family, side, cities, tags, onClose }) {
@@ -40,7 +41,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   function save(e) {
     e.preventDefault()
     if (!name.trim()) return setError('Family name is required.')
-    if (!city.trim()) return setError('City is required — it is your main filter!')
+    if (!city.trim()) return setError('City is required. It is your main filter.')
     const data = {
       side,
       name: name.trim(),
@@ -63,8 +64,8 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
       <form className="modal" onSubmit={save}>
         <div className="modal-head">
           <h2>{family ? 'Edit Family' : 'Add Family'}</h2>
-          <button type="button" className="close-btn" onClick={onClose}>
-            ✕
+          <button type="button" className="close-btn" onClick={onClose} aria-label="Close">
+            <X size={20} />
           </button>
         </div>
 
@@ -104,7 +105,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
         </label>
 
         <div className="field">
-          <span>Members (optional — add names, or just a count below)</span>
+          <span>Members (optional: add names, or just a count below)</span>
           <div className="inline-add">
             <input
               value={memberInput}
@@ -113,7 +114,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addMember())}
             />
             <button type="button" className="btn btn-small" onClick={addMember}>
-              + Add
+              <Plus size={14} weight="bold" /> Add
             </button>
           </div>
           {members.length > 0 && (
@@ -124,8 +125,9 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
                   <button
                     type="button"
                     onClick={() => setMembers(members.filter((_, j) => j !== i))}
+                    aria-label={`Remove ${m}`}
                   >
-                    ✕
+                    <X size={12} weight="bold" />
                   </button>
                 </li>
               ))}
@@ -138,7 +140,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
               min="1"
               value={memberCount}
               onChange={(e) => setMemberCount(e.target.value)}
-              placeholder="…or just total member count (e.g. 5)"
+              placeholder="or just total member count (e.g. 5)"
             />
           )}
         </div>
@@ -177,7 +179,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
             />
             <button type="button" className="btn btn-small" onClick={addTag}>
-              + Tag
+              <Plus size={14} weight="bold" /> Tag
             </button>
           </div>
         </div>
@@ -185,7 +187,8 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
         <div className="field-row">
           <label className="toggle-field">
             <input type="checkbox" checked={gift} onChange={(e) => setGift(e.target.checked)} />
-            <span>🎁 Gift to be given</span>
+            <Gift size={18} weight="fill" />
+            <span>Gift to be given</span>
           </label>
 
           <label className="field">
@@ -206,11 +209,15 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows="2"
-            placeholder="Anything to remember about this family…"
+            placeholder="Anything to remember about this family"
           />
         </label>
 
-        {error && <p className="form-error">{error}</p>}
+        {error && (
+          <p className="form-error">
+            <Warning size={16} weight="fill" /> {error}
+          </p>
+        )}
 
         <div className="modal-actions">
           <button type="button" className="btn" onClick={onClose}>

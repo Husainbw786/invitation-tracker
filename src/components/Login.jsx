@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Heart } from '@phosphor-icons/react'
 import { login } from '../lib/auth.js'
 
 export default function Login({ onLogin }) {
@@ -26,8 +27,12 @@ export default function Login({ onLogin }) {
         <span className="login-photo">
           <img src="/couple-sticker.jpeg" alt="Husain & Zainab" />
         </span>
-        <h1 className="login-title">Husain ♥ Zainab</h1>
-        <p className="login-sub">💌 Wedding invitation manager</p>
+        <h1 className="login-title">
+          Husain
+          <Heart className="brand-heart i" size={26} weight="fill" />
+          Zainab
+        </h1>
+        <p className="login-sub">Wedding invitation manager</p>
 
         <label className="field">
           <span>Email</span>
@@ -53,11 +58,11 @@ export default function Login({ onLogin }) {
         {error && <p className="form-error">{error}</p>}
 
         <button type="submit" className="btn btn-primary login-btn" disabled={busy}>
-          {busy ? 'Logging in…' : 'Login 💐'}
+          {busy ? 'Logging in...' : 'Login'}
         </button>
 
         <p className="login-hint">
-          Husain's side and Zainab's side each have their own login — every side sees
+          Husain's side and Zainab's side each have their own login. Every side sees
           only its own invitation list.
         </p>
       </form>

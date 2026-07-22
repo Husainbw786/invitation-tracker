@@ -1,5 +1,5 @@
 // Data layer: families are saved in the browser (localStorage).
-// Data stays on the device it was entered on — it survives reloads
+// Data stays on the device it was entered on. It survives reloads
 // and works offline.
 
 const STORAGE_KEY = 'wedding-invites:families:v2'

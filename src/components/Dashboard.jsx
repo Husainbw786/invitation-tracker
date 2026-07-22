@@ -1,3 +1,12 @@
+import {
+  Users,
+  UsersThree,
+  Gift,
+  Envelope,
+  MapPin,
+  Tag,
+  Confetti,
+} from '@phosphor-icons/react'
 import { effectiveCount } from '../lib/store.js'
 
 export default function Dashboard({ families, onDrillDown }) {
@@ -24,37 +33,49 @@ export default function Dashboard({ families, onDrillDown }) {
   }
 
   return (
-    <div className="dashboard">
+    <div className="dashboard rise">
       <section className="hero">
         <span className="hero-photo">
-          <img src="/couple-sticker.jpeg" alt="Us" />
+          <img src="/couple-sticker.jpeg" alt="Husain and Zainab" />
         </span>
         <div className="hero-text">
           <p className="hero-script">Our Wedding</p>
-          <p className="hero-sub">🌸 Every invitation, one beautiful list 🌸</p>
+          <p className="hero-sub">Every invitation, kept in one beautiful place</p>
         </div>
         <span className="hero-photo hero-photo-right">
-          <img src="/couple-art1.jpeg" alt="Us" />
+          <img src="/couple-art1.jpeg" alt="Husain and Zainab" />
         </span>
       </section>
 
       <section className="stat-grid">
         <button className="stat-card" onClick={() => onDrillDown({})}>
+          <span className="stat-icon">
+            <Users size={20} weight="duotone" />
+          </span>
           <span className="stat-value">{totalFamilies}</span>
           <span className="stat-label">Families Invited</span>
         </button>
         <div className="stat-card">
+          <span className="stat-icon">
+            <UsersThree size={20} weight="duotone" />
+          </span>
           <span className="stat-value">{totalMembers}</span>
           <span className="stat-label">Total Guests</span>
         </div>
         <button className="stat-card" onClick={() => onDrillDown({ gift: true })}>
+          <span className="stat-icon">
+            <Gift size={20} weight="duotone" />
+          </span>
           <span className="stat-value">{giftCount}</span>
-          <span className="stat-label">Gifts To Give 🎁</span>
+          <span className="stat-label">Gifts To Give</span>
         </button>
         <button
           className="stat-card"
           onClick={() => onDrillDown({ cardStatus: 'not-delivered' })}
         >
+          <span className="stat-icon">
+            <Envelope size={20} weight="duotone" />
+          </span>
           <span className="stat-value">
             {delivered}
             <small> / {totalFamilies}</small>
@@ -65,45 +86,55 @@ export default function Dashboard({ families, onDrillDown }) {
 
       {families.length === 0 && (
         <p className="empty-hint">
-          No families added yet — tap <strong>+ Add Family</strong> above to start your list 💐
+          <Confetti className="empty-icon i" size={30} weight="duotone" />
+          <br />
+          No families added yet. Tap <strong>Add Family</strong> above to start your list.
         </p>
       )}
 
       <section>
-        <h2 className="section-title">📍 Cities</h2>
-        {Object.keys(byCity).length === 0 && (
-          <p className="empty-hint">Cities will appear here automatically as you add families.</p>
+        <h2 className="section-title">
+          <MapPin size={17} weight="fill" /> Cities
+        </h2>
+        {Object.keys(byCity).length === 0 ? (
+          <p className="empty-hint">Cities appear here automatically as you add families.</p>
+        ) : (
+          <div className="city-grid">
+            {Object.entries(byCity)
+              .sort((a, b) => b[1].families - a[1].families)
+              .map(([city, s]) => (
+                <button
+                  key={city}
+                  className="city-card"
+                  onClick={() => onDrillDown({ city })}
+                >
+                  <div className="city-card-head">
+                    <MapPin size={16} weight="fill" />
+                    <h3>{city}</h3>
+                  </div>
+                  <p>
+                    <strong>{s.families}</strong> families, <strong>{s.members}</strong>{' '}
+                    guests
+                  </p>
+                  <p className="city-cards-line">
+                    {s.delivered}/{s.families} cards delivered
+                  </p>
+                  <div className="progress">
+                    <div
+                      className="progress-fill"
+                      style={{ width: `${(s.delivered / s.families) * 100}%` }}
+                    />
+                  </div>
+                </button>
+              ))}
+          </div>
         )}
-        <div className="city-grid">
-          {Object.entries(byCity)
-            .sort((a, b) => b[1].families - a[1].families)
-            .map(([city, s]) => (
-              <button
-                key={city}
-                className="city-card"
-                onClick={() => onDrillDown({ city })}
-              >
-                <h3>{city}</h3>
-                <p>
-                  <strong>{s.families}</strong> families · <strong>{s.members}</strong>{' '}
-                  guests
-                </p>
-                <p className="city-cards-line">
-                  {s.delivered}/{s.families} cards delivered
-                </p>
-                <div className="progress">
-                  <div
-                    className="progress-fill"
-                    style={{ width: `${(s.delivered / s.families) * 100}%` }}
-                  />
-                </div>
-              </button>
-            ))}
-        </div>
       </section>
 
       <section>
-        <h2 className="section-title">🏷️ Tags</h2>
+        <h2 className="section-title">
+          <Tag size={16} weight="fill" /> Tags
+        </h2>
         <div className="tag-cloud">
           {Object.entries(byTag)
             .sort((a, b) => b[1] - a[1])
@@ -117,7 +148,7 @@ export default function Dashboard({ families, onDrillDown }) {
               </button>
             ))}
           {Object.keys(byTag).length === 0 && (
-            <p className="empty-hint">No tags yet — add tags while creating a family.</p>
+            <p className="empty-hint">No tags yet. Add your own tags while creating a family.</p>
           )}
         </div>
       </section>

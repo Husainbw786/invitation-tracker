@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Plus, SignOut, Heart } from '@phosphor-icons/react'
 import { subscribe } from './lib/store.js'
 import { getSession, logout } from './lib/auth.js'
 import Dashboard from './components/Dashboard.jsx'
@@ -57,16 +58,21 @@ export default function App() {
               <img src="/couple-art1.jpeg" alt="Couple" className="brand-photo" />
             </span>
             <div>
-              <h1>Husain ♥ Zainab</h1>
-              <p>👪 {session.label}</p>
+              <h1 className="brand-names">
+                Husain
+                <Heart className="brand-heart i" size={20} weight="fill" />
+                Zainab
+              </h1>
+              <p>{session.label}</p>
             </div>
           </div>
           <div className="topbar-actions">
             <button className="btn btn-primary" onClick={() => setEditing('new')}>
-              + Add Family
+              <Plus size={17} weight="bold" /> Add Family
             </button>
             <button className="logout-btn" onClick={handleLogout} title="Logout">
-              ⎋<span className="logout-text"> Logout</span>
+              <SignOut size={16} />
+              <span className="logout-text">Logout</span>
             </button>
           </div>
         </div>

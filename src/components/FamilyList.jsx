@@ -1,5 +1,19 @@
 import { useState } from 'react'
 import {
+  MagnifyingGlass,
+  Printer,
+  DownloadSimple,
+  MapPin,
+  Users,
+  Gift,
+  Phone,
+  PencilSimple,
+  Trash,
+  ArrowRight,
+  X,
+  Note,
+} from '@phosphor-icons/react'
+import {
   updateFamily,
   deleteFamily,
   effectiveCount,
@@ -47,17 +61,17 @@ function printChecklist(families) {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(
       ([city, list]) => `
-      <h2>📍 ${esc(city)} — ${list.length} families</h2>
+      <h2>${esc(city)} <span class="count">${list.length} families</span></h2>
       <table>
         <tr><th></th><th>Family</th><th>Guests</th><th>Phone</th><th>Gift</th><th>Card status</th></tr>
         ${list
           .map(
             (f) => `<tr>
-              <td class="box">☐</td>
+              <td class="box">&#9744;</td>
               <td>${esc(f.name)}${f.notes ? `<div class="notes">${esc(f.notes)}</div>` : ''}</td>
               <td>${effectiveCount(f)}</td>
-              <td>${esc(f.phone || '—')}</td>
-              <td>${f.gift ? '🎁 Yes' : 'No'}</td>
+              <td>${esc(f.phone || '-')}</td>
+              <td>${f.gift ? 'Yes' : 'No'}</td>
               <td>${esc(CARD_STATUS_LABELS[f.cardStatus] || f.cardStatus)}</td>
             </tr>`
           )
@@ -66,17 +80,19 @@ function printChecklist(families) {
     )
     .join('')
   const w = window.open('', '_blank')
-  w.document.write(`<!doctype html><html><head><title>Invitation Checklist — Husain ♥ Zainab</title>
+  w.document.write(`<!doctype html><html><head><title>Invitation Checklist</title>
     <style>
-      body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 24px; color: #222; }
-      h1 { font-size: 20px; } h2 { font-size: 16px; margin: 22px 0 8px; }
+      body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 24px; color: #3a2530; }
+      h1 { font-size: 22px; color: #9d2249; }
+      h2 { font-size: 16px; margin: 24px 0 8px; color: #9d2249; }
+      h2 .count { font-size: 12px; color: #9a8088; font-weight: 400; }
       table { width: 100%; border-collapse: collapse; font-size: 13px; }
-      th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
-      th { background: #fce4ec; }
-      .box { font-size: 16px; text-align: center; width: 30px; }
-      .notes { color: #777; font-size: 11px; font-style: italic; }
+      th, td { border: 1px solid #e6c6ce; padding: 7px 9px; text-align: left; }
+      th { background: #fbeef0; }
+      .box { font-size: 17px; text-align: center; width: 30px; }
+      .notes { color: #9a8088; font-size: 11px; font-style: italic; }
     </style></head><body>
-    <h1>💍 Invitation delivery checklist</h1>${sections}
+    <h1>Invitation delivery checklist</h1>${sections}
     <script>window.onload = () => window.print()</scr` + `ipt></body></html>`)
   w.document.close()
 }
@@ -115,15 +131,18 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
     filters.search || filters.city || filters.tag || filters.gift || filters.cardStatus
 
   return (
-    <div className="family-list">
+    <div className="family-list rise">
       <div className="filter-bar">
-        <input
-          type="search"
-          className="search-input"
-          placeholder="🔍 Search family, member, city…"
-          value={filters.search}
-          onChange={(e) => set({ search: e.target.value })}
-        />
+        <div className="search-wrap">
+          <MagnifyingGlass className="i" size={18} />
+          <input
+            type="search"
+            className="search-input"
+            placeholder="Search family, member, or city"
+            value={filters.search}
+            onChange={(e) => set({ search: e.target.value })}
+          />
+        </div>
         <div className="filter-row">
           <select value={filters.city || ''} onChange={(e) => set({ city: e.target.value || null })}>
             <option value="">All cities</option>
@@ -153,45 +172,60 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
               checked={filters.gift === true}
               onChange={(e) => set({ gift: e.target.checked ? true : null })}
             />
-            🎁 Gift only
+            <Gift size={16} weight="fill" /> Gift only
           </label>
         </div>
       </div>
 
       <div className="list-meta">
         <span>
-          <strong>{filtered.length}</strong> families · <strong>{totalGuests}</strong> guests
+          <strong>{filtered.length}</strong> families, <strong>{totalGuests}</strong> guests
           {hasActiveFilters && (
-            <button className="link-btn" onClick={() => setFilters({ search: '', city: null, tag: null, gift: null, cardStatus: null })}>
-              Clear filters ✕
+            <button
+              className="link-btn"
+              onClick={() =>
+                setFilters({ search: '', city: null, tag: null, gift: null, cardStatus: null })
+              }
+            >
+              Clear filters <X size={13} weight="bold" />
             </button>
           )}
         </span>
         <span className="list-actions">
           <button className="btn btn-small" onClick={() => printChecklist(filtered)}>
-            🖨 Print
+            <Printer size={15} /> Print
           </button>
           <button className="btn btn-small" onClick={() => exportCsv(filtered)}>
-            ⬇ Export CSV
+            <DownloadSimple size={15} /> Export CSV
           </button>
         </span>
       </div>
 
       {filtered.length === 0 && (
-        <p className="empty-hint">No families match. Try clearing filters or add a new family.</p>
+        <p className="empty-hint">No families match. Try clearing filters, or add a new family.</p>
       )}
 
       <ul className="cards">
         {filtered.map((f) => {
           const isOpen = expanded === f.id
+          const count = effectiveCount(f)
           return (
             <li key={f.id} className="family-card">
               <button className="family-head" onClick={() => setExpanded(isOpen ? null : f.id)}>
                 <div className="family-title">
                   <h3>{f.name}</h3>
                   <p>
-                    📍 {f.city} · 👥 {effectiveCount(f)} guest{effectiveCount(f) > 1 ? 's' : ''}
-                    {f.gift && ' · 🎁'}
+                    <span className="meta-item">
+                      <MapPin size={13} weight="fill" /> {f.city}
+                    </span>
+                    <span className="meta-item">
+                      <Users size={13} weight="fill" /> {count} guest{count > 1 ? 's' : ''}
+                    </span>
+                    {f.gift && (
+                      <span className="meta-item">
+                        <Gift size={13} weight="fill" />
+                      </span>
+                    )}
                   </p>
                 </div>
                 <span className={`status-pill status-${f.cardStatus}`}>
@@ -203,15 +237,15 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                 <button
                   className="btn btn-small"
                   onClick={() => updateFamily(f.id, { cardStatus: nextStatus(f.cardStatus) })}
-                  title="Change card status"
+                  title="Advance card status"
                 >
-                  Card: {CARD_STATUS_LABELS[f.cardStatus]} →
+                  Card: {CARD_STATUS_LABELS[f.cardStatus]} <ArrowRight size={14} weight="bold" />
                 </button>
                 <button
                   className={f.gift ? 'btn btn-small btn-gift on' : 'btn btn-small btn-gift'}
                   onClick={() => updateFamily(f.id, { gift: !f.gift })}
                 >
-                  🎁 Gift: {f.gift ? 'Yes' : 'No'}
+                  <Gift size={14} weight={f.gift ? 'fill' : 'regular'} /> Gift: {f.gift ? 'Yes' : 'No'}
                 </button>
               </div>
 
@@ -219,17 +253,20 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                 <div className="family-detail">
                   {f.phone && (
                     <p>
-                      📞 <a href={`tel:${f.phone.replaceAll(' ', '')}`}>{f.phone}</a>
+                      <Phone size={15} weight="fill" />{' '}
+                      <a href={`tel:${f.phone.replaceAll(' ', '')}`}>{f.phone}</a>
                     </p>
                   )}
                   {f.members && f.members.length > 0 && (
                     <p>
-                      👥 <strong>Members:</strong> {f.members.join(', ')}
+                      <Users size={15} weight="fill" /> <strong>Members:</strong>{' '}
+                      {f.members.join(', ')}
                     </p>
                   )}
                   {!f.members?.length && f.memberCount > 0 && (
                     <p>
-                      👥 <strong>Members:</strong> {f.memberCount} (count only)
+                      <Users size={15} weight="fill" /> <strong>Members:</strong> {f.memberCount}{' '}
+                      (count only)
                     </p>
                   )}
                   {(f.tags || []).length > 0 && (
@@ -241,10 +278,14 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                       ))}
                     </p>
                   )}
-                  {f.notes && <p className="notes">📝 {f.notes}</p>}
+                  {f.notes && (
+                    <p className="notes">
+                      <Note size={15} /> {f.notes}
+                    </p>
+                  )}
                   <div className="detail-actions">
                     <button className="btn btn-small" onClick={() => onEdit(f)}>
-                      ✏️ Edit
+                      <PencilSimple size={14} /> Edit
                     </button>
                     <button
                       className="btn btn-small btn-danger"
@@ -252,7 +293,7 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                         if (confirm(`Delete "${f.name}" from the list?`)) deleteFamily(f.id)
                       }}
                     >
-                      🗑 Delete
+                      <Trash size={14} /> Delete
                     </button>
                   </div>
                 </div>
