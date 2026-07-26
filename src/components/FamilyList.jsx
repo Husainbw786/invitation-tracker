@@ -12,11 +12,15 @@ import {
   ArrowRight,
   X,
   Note,
+  GenderMale,
+  GenderFemale,
+  Baby,
 } from '@phosphor-icons/react'
 import {
   updateFamily,
   deleteFamily,
   effectiveCount,
+  countBreakdown,
   CARD_STATUSES,
   CARD_STATUS_LABELS,
 } from '../lib/store.js'
@@ -27,18 +31,37 @@ function nextStatus(status) {
 }
 
 function exportCsv(families) {
-  const header = ['Family', 'City', 'Phone', 'Guests', 'Members', 'Tags', 'Gift', 'Card Status', 'Notes']
-  const rows = families.map((f) => [
-    f.name,
-    f.city,
-    f.phone || '',
-    effectiveCount(f),
-    (f.members || []).join('; '),
-    (f.tags || []).join('; '),
-    f.gift ? 'Yes' : 'No',
-    CARD_STATUS_LABELS[f.cardStatus] || f.cardStatus,
-    f.notes || '',
-  ])
+  const header = [
+    'Family',
+    'City',
+    'Phone',
+    'Guests',
+    'Men',
+    'Women',
+    'Children',
+    'Members',
+    'Tags',
+    'Gift',
+    'Card Status',
+    'Notes',
+  ]
+  const rows = families.map((f) => {
+    const b = countBreakdown(f)
+    return [
+      f.name,
+      f.city,
+      f.phone || '',
+      effectiveCount(f),
+      b.male || '',
+      b.female || '',
+      b.child || '',
+      (f.members || []).join('; '),
+      (f.tags || []).join('; '),
+      f.gift ? 'Yes' : 'No',
+      CARD_STATUS_LABELS[f.cardStatus] || f.cardStatus,
+      f.notes || '',
+    ]
+  })
   const csv = [header, ...rows]
     .map((r) => r.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(','))
     .join('\n')
@@ -63,18 +86,22 @@ function printChecklist(families) {
       ([city, list]) => `
       <h2>${esc(city)} <span class="count">${list.length} families</span></h2>
       <table>
-        <tr><th></th><th>Family</th><th>Guests</th><th>Phone</th><th>Gift</th><th>Card status</th></tr>
+        <tr><th></th><th>Family</th><th>Guests</th><th>M</th><th>W</th><th>C</th><th>Phone</th><th>Gift</th><th>Card status</th></tr>
         ${list
-          .map(
-            (f) => `<tr>
+          .map((f) => {
+            const b = countBreakdown(f)
+            return `<tr>
               <td class="box">&#9744;</td>
               <td>${esc(f.name)}${f.notes ? `<div class="notes">${esc(f.notes)}</div>` : ''}</td>
               <td>${effectiveCount(f)}</td>
+              <td>${b.male || '-'}</td>
+              <td>${b.female || '-'}</td>
+              <td>${b.child || '-'}</td>
               <td>${esc(f.phone || '-')}</td>
               <td>${f.gift ? 'Yes' : 'No'}</td>
               <td>${esc(CARD_STATUS_LABELS[f.cardStatus] || f.cardStatus)}</td>
             </tr>`
-          )
+          })
           .join('')}
       </table>`
     )
@@ -91,8 +118,10 @@ function printChecklist(families) {
       th { background: #fbeef0; }
       .box { font-size: 17px; text-align: center; width: 30px; }
       .notes { color: #9a8088; font-size: 11px; font-style: italic; }
+      .legend { font-size: 11px; color: #9a8088; margin-top: 4px; }
     </style></head><body>
-    <h1>Invitation delivery checklist</h1>${sections}
+    <h1>Invitation delivery checklist</h1>
+    <p class="legend">M = men, W = women, C = children</p>${sections}
     <script>window.onload = () => window.print()</scr` + `ipt></body></html>`)
   w.document.close()
 }
@@ -209,6 +238,7 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
         {filtered.map((f) => {
           const isOpen = expanded === f.id
           const count = effectiveCount(f)
+          const breakdown = countBreakdown(f)
           return (
             <li key={f.id} className="family-card">
               <button className="family-head" onClick={() => setExpanded(isOpen ? null : f.id)}>
@@ -263,10 +293,31 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                       {f.members.join(', ')}
                     </p>
                   )}
-                  {!f.members?.length && f.memberCount > 0 && (
-                    <p>
-                      <Users size={15} weight="fill" /> <strong>Members:</strong> {f.memberCount}{' '}
-                      (count only)
+                  {!f.members?.length && breakdown.total > 0 && (
+                    <p className="detail-breakdown">
+                      {breakdown.untyped ? (
+                        <span className="bd-item">
+                          <Users size={14} weight="fill" /> {breakdown.total} guests (not split)
+                        </span>
+                      ) : (
+                        <>
+                          {breakdown.male > 0 && (
+                            <span className="bd-item">
+                              <GenderMale size={14} weight="bold" /> {breakdown.male} men
+                            </span>
+                          )}
+                          {breakdown.female > 0 && (
+                            <span className="bd-item">
+                              <GenderFemale size={14} weight="bold" /> {breakdown.female} women
+                            </span>
+                          )}
+                          {breakdown.child > 0 && (
+                            <span className="bd-item">
+                              <Baby size={14} weight="bold" /> {breakdown.child} children
+                            </span>
+                          )}
+                        </>
+                      )}
                     </p>
                   )}
                   {(f.tags || []).length > 0 && (

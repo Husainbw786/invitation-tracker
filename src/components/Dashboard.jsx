@@ -6,8 +6,11 @@ import {
   MapPin,
   Tag,
   Confetti,
+  GenderMale,
+  GenderFemale,
+  Baby,
 } from '@phosphor-icons/react'
-import { effectiveCount } from '../lib/store.js'
+import { effectiveCount, countBreakdown } from '../lib/store.js'
 
 export default function Dashboard({ families, onDrillDown }) {
   const totalFamilies = families.length
@@ -15,6 +18,23 @@ export default function Dashboard({ families, onDrillDown }) {
   const giftCount = families.filter((f) => f.gift).length
   const delivered = families.filter((f) => f.cardStatus === 'delivered').length
   const pendingCards = totalFamilies - delivered
+
+  const guests = { male: 0, female: 0, child: 0, untyped: 0 }
+  for (const f of families) {
+    if (f.members?.length) {
+      guests.untyped += f.members.length
+      continue
+    }
+    const b = countBreakdown(f)
+    if (b.untyped) guests.untyped += b.total
+    else {
+      guests.male += b.male
+      guests.female += b.female
+      guests.child += b.child
+      if (b.total === 0) guests.untyped += 1
+    }
+  }
+  const hasSplit = guests.male + guests.female + guests.child > 0
 
   const byCity = {}
   for (const f of families) {
@@ -83,6 +103,36 @@ export default function Dashboard({ families, onDrillDown }) {
           <span className="stat-label">Cards Delivered ({pendingCards} left)</span>
         </button>
       </section>
+
+      {hasSplit && (
+        <section className="breakdown-card">
+          <span className="breakdown-title">Guest breakdown</span>
+          <div className="breakdown-row">
+            <div className="bd-cell">
+              <GenderMale size={19} weight="bold" />
+              <strong>{guests.male}</strong>
+              <span>Men</span>
+            </div>
+            <div className="bd-cell">
+              <GenderFemale size={19} weight="bold" />
+              <strong>{guests.female}</strong>
+              <span>Women</span>
+            </div>
+            <div className="bd-cell">
+              <Baby size={19} weight="bold" />
+              <strong>{guests.child}</strong>
+              <span>Children</span>
+            </div>
+            {guests.untyped > 0 && (
+              <div className="bd-cell bd-cell-muted">
+                <Users size={19} weight="fill" />
+                <strong>{guests.untyped}</strong>
+                <span>Not split</span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {families.length === 0 && (
         <p className="empty-hint">

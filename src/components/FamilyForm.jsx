@@ -1,5 +1,13 @@
 import { useState } from 'react'
-import { X, Plus, Gift, Warning } from '@phosphor-icons/react'
+import {
+  X,
+  Plus,
+  Gift,
+  Warning,
+  GenderMale,
+  GenderFemale,
+  Baby,
+} from '@phosphor-icons/react'
 import { addFamily, updateFamily, CARD_STATUS_LABELS } from '../lib/store.js'
 
 export default function FamilyForm({ family, side, cities, tags, onClose }) {
@@ -8,7 +16,15 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   const [phone, setPhone] = useState(family?.phone || '')
   const [members, setMembers] = useState(family?.members?.length ? [...family.members] : [])
   const [memberInput, setMemberInput] = useState('')
-  const [memberCount, setMemberCount] = useState(family?.memberCount || '')
+  // Families saved before the split existed carried one untyped `memberCount`.
+  // Seed it into the men box so editing an old family never loses the number.
+  const legacyCount =
+    !family?.maleCount && !family?.femaleCount && !family?.childCount
+      ? family?.memberCount || ''
+      : ''
+  const [maleCount, setMaleCount] = useState(family?.maleCount || legacyCount)
+  const [femaleCount, setFemaleCount] = useState(family?.femaleCount || '')
+  const [childCount, setChildCount] = useState(family?.childCount || '')
   const [selectedTags, setSelectedTags] = useState(family?.tags ? [...family.tags] : [])
   const [tagInput, setTagInput] = useState('')
   const [gift, setGift] = useState(family?.gift || false)
@@ -48,7 +64,10 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
       city: city.trim(),
       phone: phone.trim(),
       members,
-      memberCount: members.length ? null : Number(memberCount) || null,
+      maleCount: members.length ? null : Number(maleCount) || null,
+      femaleCount: members.length ? null : Number(femaleCount) || null,
+      childCount: members.length ? null : Number(childCount) || null,
+      memberCount: null, // replaced by the men/women/children split
       tags: selectedTags,
       gift,
       cardStatus,
@@ -105,7 +124,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
         </label>
 
         <div className="field">
-          <span>Members (optional: add names, or just a count below)</span>
+          <span>Members (optional: add names, or just the counts below)</span>
           <div className="inline-add">
             <input
               value={memberInput}
@@ -134,14 +153,55 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
             </ul>
           )}
           {members.length === 0 && (
-            <input
-              className="count-input"
-              type="number"
-              min="1"
-              value={memberCount}
-              onChange={(e) => setMemberCount(e.target.value)}
-              placeholder="or just total member count (e.g. 5)"
-            />
+            <div className="count-split">
+              <label className="count-box">
+                <span className="count-box-label">
+                  <GenderMale size={15} weight="bold" /> Men
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={maleCount}
+                  onChange={(e) => setMaleCount(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label className="count-box">
+                <span className="count-box-label">
+                  <GenderFemale size={15} weight="bold" /> Women
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={femaleCount}
+                  onChange={(e) => setFemaleCount(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label className="count-box">
+                <span className="count-box-label">
+                  <Baby size={15} weight="bold" /> Children
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={childCount}
+                  onChange={(e) => setChildCount(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <p className="count-total">
+                Total guests:{' '}
+                <strong>
+                  {(Number(maleCount) || 0) +
+                    (Number(femaleCount) || 0) +
+                    (Number(childCount) || 0)}
+                </strong>
+              </p>
+            </div>
           )}
         </div>
 

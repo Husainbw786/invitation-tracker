@@ -51,11 +51,26 @@ export function deleteFamily(id) {
   persist()
 }
 
-// How many people a family counts for: listed members, else the manual
-// count, else at least the head of the family (1).
+// Men / women / children split for a family.
+// Families saved before this feature existed only had a single `memberCount`,
+// so that value is reported as an untyped total instead of being lost.
+export function countBreakdown(family) {
+  const male = Number(family.maleCount) || 0
+  const female = Number(family.femaleCount) || 0
+  const child = Number(family.childCount) || 0
+  const total = male + female + child
+  if (total === 0 && Number(family.memberCount) > 0) {
+    return { male: 0, female: 0, child: 0, total: Number(family.memberCount), untyped: true }
+  }
+  return { male, female, child, total, untyped: false }
+}
+
+// How many people a family counts for: listed member names, else the
+// men/women/children split, else at least the head of the family (1).
 export function effectiveCount(family) {
   if (family.members && family.members.length > 0) return family.members.length
-  if (family.memberCount && family.memberCount > 0) return family.memberCount
+  const { total } = countBreakdown(family)
+  if (total > 0) return total
   return 1
 }
 

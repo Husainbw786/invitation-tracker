@@ -942,8 +942,126 @@ button.stat-card:hover {
   color: var(--rose-deep);
 }
 
-.count-input {
-  margin-top: 6px;
+/* Men / women / children split inputs */
+.count-split {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.count-box {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.count-box-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--rose-deep);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.count-box input {
+  padding: 10px 11px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  font-size: 16px;
+  font-weight: 600;
+  width: 100%;
+  text-align: center;
+}
+
+.count-total {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--ink-2);
+  text-align: center;
+  margin-top: 2px;
+}
+
+.count-total strong {
+  color: var(--rose-deep);
+}
+
+/* Dashboard guest breakdown */
+.breakdown-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-surface);
+  box-shadow: var(--shadow-sm);
+  padding: 15px 16px;
+  margin-top: 13px;
+}
+
+.breakdown-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.breakdown-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.bd-cell {
+  flex: 1;
+  min-width: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 11px 8px;
+  border-radius: var(--r-control);
+  background: var(--bg-2);
+  color: var(--rose);
+}
+
+.bd-cell strong {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.bd-cell span {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.bd-cell-muted {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+/* Breakdown line inside an expanded family card */
+.detail-breakdown {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bd-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-2);
+  color: var(--rose-deep);
+  border-radius: var(--r-pill);
+  padding: 4px 11px;
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 .field-row {
