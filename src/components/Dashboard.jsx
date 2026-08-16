@@ -10,7 +10,7 @@ import {
   GenderFemale,
   Baby,
 } from '@phosphor-icons/react'
-import { effectiveCount, countBreakdown } from '../lib/store.js'
+import { effectiveCount, countBreakdown, tagAttendance } from '../lib/store.js'
 
 export default function Dashboard({ families, onDrillDown }) {
   const totalFamilies = families.length
@@ -45,10 +45,12 @@ export default function Dashboard({ families, onDrillDown }) {
     if (f.cardStatus === 'delivered') byCity[city].delivered += 1
   }
 
+  // Attendee headcount per tag (not just how many families carry it), so
+  // "mehndi" shows how many people are actually coming, not how many families.
   const byTag = {}
   for (const f of families) {
     for (const tag of f.tags || []) {
-      byTag[tag] = (byTag[tag] || 0) + 1
+      byTag[tag] = (byTag[tag] || 0) + tagAttendance(f, tag)
     }
   }
 
@@ -185,6 +187,7 @@ export default function Dashboard({ families, onDrillDown }) {
         <h2 className="section-title">
           <Tag size={16} weight="fill" /> Tags
         </h2>
+        <p className="section-hint">Tap a tag to see who's attending. Numbers are guests, not families.</p>
         <div className="tag-cloud">
           {Object.entries(byTag)
             .sort((a, b) => b[1] - a[1])

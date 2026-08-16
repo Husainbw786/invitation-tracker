@@ -21,6 +21,7 @@ import {
   deleteFamily,
   effectiveCount,
   countBreakdown,
+  tagAttendance,
   CARD_STATUSES,
   CARD_STATUS_LABELS,
 } from '../lib/store.js'
@@ -288,9 +289,22 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                     </p>
                   )}
                   {f.members && f.members.length > 0 && (
-                    <p>
+                    <p className="member-list-line">
                       <Users size={15} weight="fill" /> <strong>Members:</strong>{' '}
-                      {f.members.join(', ')}
+                      {f.members.map((m, i) => {
+                        const explicit = f.memberTags?.[m]
+                        return (
+                          <span key={i}>
+                            {m}
+                            {explicit !== undefined && (
+                              <span className="member-tag-note">
+                                {explicit.length ? ` (${explicit.join(', ')})` : ' (no functions)'}
+                              </span>
+                            )}
+                            {i < f.members.length - 1 ? ', ' : ''}
+                          </span>
+                        )
+                      })}
                     </p>
                   )}
                   {!f.members?.length && breakdown.total > 0 && (
@@ -322,11 +336,15 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                   )}
                   {(f.tags || []).length > 0 && (
                     <p className="detail-tags">
-                      {f.tags.map((t) => (
-                        <span key={t} className="tag-chip small">
-                          {t}
-                        </span>
-                      ))}
+                      {f.tags.map((t) => {
+                        const att = tagAttendance(f, t)
+                        return (
+                          <span key={t} className="tag-chip small">
+                            {t}
+                            {att !== count ? ` · ${att}` : ''}
+                          </span>
+                        )
+                      })}
                     </p>
                   )}
                   {f.notes && (

@@ -27,6 +27,12 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   const [childCount, setChildCount] = useState(family?.childCount || '')
   const [selectedTags, setSelectedTags] = useState(family?.tags ? [...family.tags] : [])
   const [tagInput, setTagInput] = useState('')
+  // Per-member: which of the family's tags each named member is attending.
+  // A member with no entry here is assumed to attend every selected tag.
+  const [memberTags, setMemberTags] = useState(family?.memberTags ? { ...family.memberTags } : {})
+  // Count-mode (no named members): how many guests attend each tag.
+  // An unset tag falls back to the full family headcount.
+  const [tagCounts, setTagCounts] = useState(family?.tagCounts ? { ...family.tagCounts } : {})
   const [gift, setGift] = useState(family?.gift || false)
   const [cardStatus, setCardStatus] = useState(family?.cardStatus || 'pending')
   const [notes, setNotes] = useState(family?.notes || '')
@@ -35,22 +41,46 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   function addMember() {
     const m = memberInput.trim()
     if (!m) return
-    setMembers([...members, m])
+    setMembers((prev) => [...prev, m])
     setMemberInput('')
   }
 
+  function removeMember(index, m) {
+    const next = members.filter((_, j) => j !== index)
+    setMembers(next)
+    // Only drop this member's tag assignment once no duplicate of the same
+    // name remains, so removing one "Zoya" doesn't wipe another "Zoya".
+    if (!next.includes(m)) {
+      setMemberTags((prev) => {
+        const { [m]: _removed, ...rest } = prev
+        return rest
+      })
+    }
+  }
+
   function toggleTag(tag) {
-    setSelectedTags(
-      selectedTags.includes(tag)
-        ? selectedTags.filter((t) => t !== tag)
-        : [...selectedTags, tag]
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     )
+  }
+
+  // A member with no explicit entry is assumed to attend every selected tag;
+  // clicking a chip materializes that assumption into an explicit list so a
+  // single person can be excluded from a specific function.
+  function toggleMemberTag(member, tag) {
+    setMemberTags((prev) => {
+      const current = prev[member] ?? selectedTags
+      const next = current.includes(tag)
+        ? current.filter((t) => t !== tag)
+        : [...current, tag]
+      return { ...prev, [member]: next }
+    })
   }
 
   function addTag() {
     const t = tagInput.trim().toLowerCase()
     if (!t) return
-    if (!selectedTags.includes(t)) setSelectedTags([...selectedTags, t])
+    setSelectedTags((prev) => (prev.includes(t) ? prev : [...prev, t]))
     setTagInput('')
   }
 
@@ -58,15 +88,34 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
     e.preventDefault()
     if (!name.trim()) return setError('Family name is required.')
     if (!city.trim()) return setError('City is required. It is your main filter.')
+
+    // Only keep memberTags entries for members still on the list, and only
+    // for tags still selected on the family (dropping a tag drops its data).
+    const savedMemberTags = {}
+    for (const m of members) {
+      const explicit = memberTags[m]
+      if (explicit) savedMemberTags[m] = explicit.filter((t) => selectedTags.includes(t))
+    }
+    // Only keep tagCounts for tags still selected, and only when the user
+    // actually typed a number (blank means "assume everyone").
+    const savedTagCounts = {}
+    for (const t of selectedTags) {
+      if (tagCounts[t] !== undefined && tagCounts[t] !== '') {
+        savedTagCounts[t] = Number(tagCounts[t]) || 0
+      }
+    }
+
     const data = {
       side,
       name: name.trim(),
       city: city.trim(),
       phone: phone.trim(),
       members,
+      memberTags: members.length ? savedMemberTags : {},
       maleCount: members.length ? null : Number(maleCount) || null,
       femaleCount: members.length ? null : Number(femaleCount) || null,
       childCount: members.length ? null : Number(childCount) || null,
+      tagCounts: members.length ? {} : savedTagCounts,
       memberCount: null, // replaced by the men/women/children split
       tags: selectedTags,
       gift,
@@ -77,6 +126,8 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
     else addFamily(data)
     onClose()
   }
+
+  const guestTotal = (Number(maleCount) || 0) + (Number(femaleCount) || 0) + (Number(childCount) || 0)
 
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -124,6 +175,45 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
         </label>
 
         <div className="field">
+          <span>Tags</span>
+          <div className="tag-cloud">
+            {tags.map((t) => (
+              <button
+                type="button"
+                key={t}
+                className={selectedTags.includes(t) ? 'tag-chip selected' : 'tag-chip'}
+                onClick={() => toggleTag(t)}
+              >
+                {t}
+              </button>
+            ))}
+            {selectedTags
+              .filter((t) => !tags.includes(t))
+              .map((t) => (
+                <button
+                  type="button"
+                  key={t}
+                  className="tag-chip selected"
+                  onClick={() => toggleTag(t)}
+                >
+                  {t}
+                </button>
+              ))}
+          </div>
+          <div className="inline-add">
+            <input
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              placeholder="New tag e.g. mamera, main function"
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+            />
+            <button type="button" className="btn btn-small" onClick={addTag}>
+              <Plus size={14} weight="bold" /> Tag
+            </button>
+          </div>
+        </div>
+
+        <div className="field">
           <span>Members (optional: add names, or just the counts below)</span>
           <div className="inline-add">
             <input
@@ -138,18 +228,39 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
           </div>
           {members.length > 0 && (
             <ul className="member-pills">
-              {members.map((m, i) => (
-                <li key={i}>
-                  {m}
-                  <button
-                    type="button"
-                    onClick={() => setMembers(members.filter((_, j) => j !== i))}
-                    aria-label={`Remove ${m}`}
-                  >
-                    <X size={12} weight="bold" />
-                  </button>
-                </li>
-              ))}
+              {members.map((m, i) => {
+                const effectiveTags = memberTags[m] ?? selectedTags
+                return (
+                  <li key={i} className="member-pill-row">
+                    <div className="member-pill-head">
+                      <span>{m}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeMember(i, m)}
+                        aria-label={`Remove ${m}`}
+                      >
+                        <X size={12} weight="bold" />
+                      </button>
+                    </div>
+                    {selectedTags.length > 0 && (
+                      <div className="member-tag-chips">
+                        {selectedTags.map((t) => (
+                          <button
+                            type="button"
+                            key={t}
+                            className={
+                              effectiveTags.includes(t) ? 'tag-chip tiny selected' : 'tag-chip tiny'
+                            }
+                            onClick={() => toggleMemberTag(m, t)}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           )}
           {members.length === 0 && (
@@ -194,54 +305,36 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
                 />
               </label>
               <p className="count-total">
-                Total guests:{' '}
-                <strong>
-                  {(Number(maleCount) || 0) +
-                    (Number(femaleCount) || 0) +
-                    (Number(childCount) || 0)}
-                </strong>
+                Total guests: <strong>{guestTotal}</strong>
               </p>
             </div>
           )}
-        </div>
-
-        <div className="field">
-          <span>Tags</span>
-          <div className="tag-cloud">
-            {tags.map((t) => (
-              <button
-                type="button"
-                key={t}
-                className={selectedTags.includes(t) ? 'tag-chip selected' : 'tag-chip'}
-                onClick={() => toggleTag(t)}
-              >
-                {t}
-              </button>
-            ))}
-            {selectedTags
-              .filter((t) => !tags.includes(t))
-              .map((t) => (
-                <button
-                  type="button"
-                  key={t}
-                  className="tag-chip selected"
-                  onClick={() => toggleTag(t)}
-                >
-                  {t}
-                </button>
+          {members.length === 0 && selectedTags.length > 0 && (
+            <div className="tag-count-split">
+              <span className="field-subtitle">
+                How many attend each function? Leave blank for everyone.
+              </span>
+              {selectedTags.map((t) => (
+                <label key={t} className="tag-count-row">
+                  <span className="tag-count-row-label">{t}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={guestTotal || undefined}
+                    inputMode="numeric"
+                    value={tagCounts[t] ?? ''}
+                    onChange={(e) =>
+                      setTagCounts((prev) => ({
+                        ...prev,
+                        [t]: e.target.value === '' ? undefined : e.target.value,
+                      }))
+                    }
+                    placeholder="all"
+                  />
+                </label>
               ))}
-          </div>
-          <div className="inline-add">
-            <input
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              placeholder="New tag e.g. mamera, main function"
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-            />
-            <button type="button" className="btn btn-small" onClick={addTag}>
-              <Plus size={14} weight="bold" /> Tag
-            </button>
-          </div>
+            </div>
+          )}
         </div>
 
         <div className="field-row">

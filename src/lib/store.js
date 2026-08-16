@@ -74,6 +74,27 @@ export function effectiveCount(family) {
   return 1
 }
 
+// How many of a family's guests are attending a specific tag/function
+// (e.g. "mehndi", "mamera"). Defaults to "everyone" until told otherwise:
+//  - named members: a member with no explicit tag list is assumed to attend
+//    every one of the family's tags; assigning tags to them overrides that.
+//  - count-mode families: an unset tagCounts[tag] falls back to the full
+//    family headcount; an explicit number (including 0) overrides it.
+export function tagAttendance(family, tag) {
+  if (!(family.tags || []).includes(tag)) return 0
+  if (family.members && family.members.length > 0) {
+    const mt = family.memberTags || {}
+    return family.members.filter((m) => {
+      const explicit = mt[m]
+      if (explicit === undefined) return true
+      return explicit.includes(tag)
+    }).length
+  }
+  const tc = family.tagCounts || {}
+  if (Object.prototype.hasOwnProperty.call(tc, tag)) return Number(tc[tag]) || 0
+  return effectiveCount(family)
+}
+
 export const CARD_STATUSES = ['pending', 'written', 'delivered']
 
 export const CARD_STATUS_LABELS = {
