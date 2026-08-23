@@ -1,0 +1,29 @@
+# Supabase pauses free projects after 7 days with no database activity, which
+# would take the guest list offline until someone restores it by hand. This
+# pings the database every 3 days so that never happens.
+#
+# It is a plain unauthenticated read of one row using the publishable key,
+# which is the same key the website already uses in the browser.
+
+name: Keep Supabase awake
+
+on:
+  schedule:
+    # 06:00 UTC every 3rd day
+    - cron: '0 6 */3 * *'
+  workflow_dispatch: # lets you run it manually from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+            "https://etppyrqihcjckrvajfqe.supabase.co/rest/v1/families?select=id&limit=1" \
+            -H "apikey: sb_publishable_erTmxfzSmdMbJ9O8CEsSPQ_oQsNZUk3")
+          echo "Supabase responded with HTTP $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "Unexpected response, the project may be paused or the key rotated."
+            exit 1
+          fi

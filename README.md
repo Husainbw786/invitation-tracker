@@ -34,10 +34,27 @@ assigned to one side: `husain` or `zainab`).
 
 ## Data
 
-All data is saved in the browser (localStorage) on the device where it was
-entered. It survives reloads and works offline, but is **not shared between
-devices** — each phone/laptop keeps its own list. Use **Export CSV** to move or
-back up the list.
+Families are stored in **Supabase** (hosted Postgres) in a single `families`
+table, and sync live to every device: add a family on one phone and it appears
+on the others within a second, no refresh.
+
+Each row carries a `side` column (`husain` / `zainab`) and the app only ever
+queries its own side, so the two families keep separate guest lists.
+
+The schema lives in [`supabase-schema.sql`](supabase-schema.sql).
+
+### Two things to know
+
+1. **Access is open.** The app logs in with a hardcoded check in the browser, so
+   Postgres cannot verify who is asking and the Row Level Security policy must
+   allow the publishable key full access. Anyone who knows the site URL can read
+   or delete the guest list. Keep the URL private, and use **Export CSV**
+   occasionally as a backup. To lock it down properly, switch to Supabase Auth
+   and change the policy to `using (auth.uid() is not null)`.
+2. **Free projects pause after 7 days idle.** A GitHub Action
+   ([`keep-supabase-awake.yml`](.github/workflows/keep-supabase-awake.yml)) pings
+   the database every 3 days to prevent that. If the app ever shows no data,
+   check whether the project was paused in the Supabase dashboard.
 
 ## Deploy
 

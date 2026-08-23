@@ -1,45 +1,74 @@
 // Data layer for the app. The same API works in both modes, so no component
 // needs to know which one is active:
-//   - Cloud mode (Firestore): live sync across every device, offline-capable.
-//   - Local mode (localStorage): this device only.
+//   - Cloud mode (Supabase): shared across every device, live-synced.
+//   - Local mode: this browser's localStorage only.
 //
-// Each subscription is scoped to one side ('husain' | 'zainab'), so a side
-// only ever downloads its own guest list.
+// Every subscription is scoped to one side ('husain' | 'zainab'), so a side
+// only ever fetches its own guest list.
 
-import { app, firebaseEnabled } from './firebase.js'
+import { supabase, supabaseEnabled, TABLE } from './supabase.js'
 
 const STORAGE_KEY = 'wedding-invites:families:v2'
-const COLLECTION = 'families'
 
-let fs = null // { ...firestoreModule, db } once loaded in cloud mode
-let fsReady = null // promise, so concurrent writers await the same init
+// Postgres uses snake_case, the app uses camelCase. Mapped in one place so
+// adding a field means adding one line here plus one column in the table.
+const COLUMN = {
+  side: 'side',
+  name: 'name',
+  city: 'city',
+  phone: 'phone',
+  members: 'members',
+  memberTags: 'member_tags',
+  tagCounts: 'tag_counts',
+  tags: 'tags',
+  maleCount: 'male_count',
+  femaleCount: 'female_count',
+  childCount: 'child_count',
+  memberCount: 'member_count',
+  gift: 'gift',
+  cardStatus: 'card_status',
+  notes: 'notes',
+}
 
-// ---------------------------------------------------------------- cloud mode
-
-async function initFirestore() {
-  if (fs) return fs
-  if (!fsReady) {
-    fsReady = (async () => {
-      const m = await import('firebase/firestore')
-      let db
-      try {
-        // Offline cache: relatives can keep adding families with no signal,
-        // and writes flush once they reconnect.
-        db = m.initializeFirestore(app, {
-          localCache: m.persistentLocalCache({
-            tabManager: m.persistentMultipleTabManager(),
-          }),
-        })
-      } catch (e) {
-        // Already initialized, or the browser blocks persistence.
-        console.warn('Firestore persistent cache unavailable, using memory cache', e)
-        db = m.getFirestore(app)
-      }
-      fs = { ...m, db }
-      return fs
-    })()
+function fromRow(r) {
+  return {
+    id: r.id,
+    side: r.side,
+    name: r.name || '',
+    city: r.city || '',
+    phone: r.phone || '',
+    members: r.members || [],
+    memberTags: r.member_tags || {},
+    tagCounts: r.tag_counts || {},
+    tags: r.tags || [],
+    maleCount: r.male_count,
+    femaleCount: r.female_count,
+    childCount: r.child_count,
+    memberCount: r.member_count,
+    gift: Boolean(r.gift),
+    cardStatus: r.card_status || 'pending',
+    notes: r.notes || '',
+    createdAt: r.created_at ? new Date(r.created_at).getTime() : 0,
   }
-  return fsReady
+}
+
+// Only maps keys that are present, so partial updates stay partial.
+// `id` and `created_at` are owned by the database and never written.
+function toRow(obj) {
+  const row = {}
+  for (const [key, value] of Object.entries(obj)) {
+    const col = COLUMN[key]
+    if (col) row[col] = value
+  }
+  return row
+}
+
+// Active reload functions, one per subscription. Called after every local
+// write so the UI updates instantly even if realtime is not enabled.
+let loaders = new Set()
+
+function reloadAll() {
+  loaders.forEach((load) => load())
 }
 
 // ---------------------------------------------------------------- local mode
@@ -56,20 +85,18 @@ function loadLocal() {
 
 function saveLocal(all) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
-  localListeners.forEach((l) => l.fn(sortByCreated(all.filter((f) => f.side === l.side))))
+  reloadAll()
 }
-
-let localListeners = []
-
-// ---------------------------------------------------------------- shared
 
 function sortByCreated(list) {
   return [...list].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
 }
 
+// ---------------------------------------------------------------- public API
+
 /**
- * Watch one side's families. Calls fn(families) immediately and on every
- * change. Returns an unsubscribe function.
+ * Watch one side's families. Calls fn(families) with the current list and
+ * again on every change. Returns an unsubscribe function.
  */
 export function subscribe(side, fn) {
   if (!side) {
@@ -77,58 +104,95 @@ export function subscribe(side, fn) {
     return () => {}
   }
 
-  if (firebaseEnabled) {
-    let stop = null
-    let cancelled = false
-    initFirestore().then((f) => {
+  let cancelled = false
+
+  if (supabaseEnabled) {
+    const load = async () => {
+      const { data, error } = await supabase
+        .from(TABLE)
+        .select('*')
+        .eq('side', side)
+        .order('created_at', { ascending: true })
       if (cancelled) return
-      // Single equality filter needs no composite index; sorting is done in JS.
-      const q = f.query(f.collection(f.db, COLLECTION), f.where('side', '==', side))
-      stop = f.onSnapshot(
-        q,
-        (snap) => fn(sortByCreated(snap.docs.map((d) => ({ id: d.id, ...d.data() })))),
-        (err) => console.error('Firestore sync error', err)
-      )
-    })
+      if (error) {
+        console.error('Supabase load failed', error.message)
+        return
+      }
+      fn(data.map(fromRow))
+    }
+
+    loaders.add(load)
+    load()
+
+    // Any change to the table triggers a refetch of just this side's rows.
+    // Refetching (rather than patching from the payload) keeps deletes and
+    // partial updates correct with no extra edge cases.
+    const channel = supabase
+      .channel(`families-${side}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, load)
+      .subscribe()
+
     return () => {
       cancelled = true
-      if (stop) stop()
+      loaders.delete(load)
+      supabase.removeChannel(channel)
     }
   }
 
-  const listener = { side, fn }
-  localListeners.push(listener)
-  fn(sortByCreated(loadLocal().filter((f) => f.side === side)))
+  const load = () => {
+    if (!cancelled) fn(sortByCreated(loadLocal().filter((f) => f.side === side)))
+  }
+  loaders.add(load)
+  load()
   return () => {
-    localListeners = localListeners.filter((l) => l !== listener)
+    cancelled = true
+    loaders.delete(load)
   }
 }
 
 export async function addFamily(data) {
-  const family = { ...data, createdAt: Date.now() }
-  if (firebaseEnabled) {
-    const f = await initFirestore()
-    await f.addDoc(f.collection(f.db, COLLECTION), family)
-    return family
+  if (supabaseEnabled) {
+    const { error } = await supabase.from(TABLE).insert(toRow(data))
+    if (error) {
+      console.error('Could not add family', error.message)
+      alert('Could not save this family. Check your internet connection.')
+      return null
+    }
+    reloadAll()
+    return data
   }
-  family.id = 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+  const family = {
+    ...data,
+    id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    createdAt: Date.now(),
+  }
   saveLocal([...loadLocal(), family])
   return family
 }
 
 export async function updateFamily(id, patch) {
-  if (firebaseEnabled) {
-    const f = await initFirestore()
-    await f.updateDoc(f.doc(f.db, COLLECTION, id), patch)
+  if (supabaseEnabled) {
+    const { error } = await supabase.from(TABLE).update(toRow(patch)).eq('id', id)
+    if (error) {
+      console.error('Could not update family', error.message)
+      alert('Could not save that change. Check your internet connection.')
+      return
+    }
+    reloadAll()
     return
   }
   saveLocal(loadLocal().map((f) => (f.id === id ? { ...f, ...patch } : f)))
 }
 
 export async function deleteFamily(id) {
-  if (firebaseEnabled) {
-    const f = await initFirestore()
-    await f.deleteDoc(f.doc(f.db, COLLECTION, id))
+  if (supabaseEnabled) {
+    const { error } = await supabase.from(TABLE).delete().eq('id', id)
+    if (error) {
+      console.error('Could not delete family', error.message)
+      alert('Could not delete that family. Check your internet connection.')
+      return
+    }
+    reloadAll()
     return
   }
   saveLocal(loadLocal().filter((f) => f.id !== id))
