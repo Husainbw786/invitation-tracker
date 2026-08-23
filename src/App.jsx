@@ -11,18 +11,20 @@ const EMPTY_FILTERS = { search: '', city: null, tag: null, gift: null, cardStatu
 
 export default function App() {
   const [session, setSession] = useState(getSession)
-  const [allFamilies, setAllFamilies] = useState([])
+  const [families, setFamilies] = useState([])
   const [tab, setTab] = useState('dashboard') // 'dashboard' | 'list'
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [editing, setEditing] = useState(null) // null | 'new' | family object
 
-  useEffect(() => subscribe(setAllFamilies), [])
-
-  // Each side (Husain's / Zainab's family) only sees its own list.
-  const families = useMemo(
-    () => (session ? allFamilies.filter((f) => f.side === session.side) : []),
-    [allFamilies, session]
-  )
+  // Subscribe to just this side's guest list, so Husain's and Zainab's
+  // families never load each other's data.
+  useEffect(() => {
+    if (!session) {
+      setFamilies([])
+      return
+    }
+    return subscribe(session.side, setFamilies)
+  }, [session])
 
   const cities = useMemo(
     () => [...new Set(families.map((f) => f.city.trim()).filter(Boolean))].sort(),

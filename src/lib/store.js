@@ -1,55 +1,140 @@
-// Data layer: families are saved in the browser (localStorage).
-// Data stays on the device it was entered on. It survives reloads
-// and works offline.
+// Data layer for the app. The same API works in both modes, so no component
+// needs to know which one is active:
+//   - Cloud mode (Firestore): live sync across every device, offline-capable.
+//   - Local mode (localStorage): this device only.
+//
+// Each subscription is scoped to one side ('husain' | 'zainab'), so a side
+// only ever downloads its own guest list.
+
+import { app, firebaseEnabled } from './firebase.js'
 
 const STORAGE_KEY = 'wedding-invites:families:v2'
+const COLLECTION = 'families'
 
-let families = load()
-let listeners = []
+let fs = null // { ...firestoreModule, db } once loaded in cloud mode
+let fsReady = null // promise, so concurrent writers await the same init
 
-function load() {
+// ---------------------------------------------------------------- cloud mode
+
+async function initFirestore() {
+  if (fs) return fs
+  if (!fsReady) {
+    fsReady = (async () => {
+      const m = await import('firebase/firestore')
+      let db
+      try {
+        // Offline cache: relatives can keep adding families with no signal,
+        // and writes flush once they reconnect.
+        db = m.initializeFirestore(app, {
+          localCache: m.persistentLocalCache({
+            tabManager: m.persistentMultipleTabManager(),
+          }),
+        })
+      } catch (e) {
+        // Already initialized, or the browser blocks persistence.
+        console.warn('Firestore persistent cache unavailable, using memory cache', e)
+        db = m.getFirestore(app)
+      }
+      fs = { ...m, db }
+      return fs
+    })()
+  }
+  return fsReady
+}
+
+// ---------------------------------------------------------------- local mode
+
+function loadLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
+    return raw ? JSON.parse(raw) : []
   } catch (e) {
     console.error('Failed to load saved data', e)
+    return []
   }
-  return []
 }
 
-function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(families))
-  listeners.forEach((fn) => fn(families))
+function saveLocal(all) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
+  localListeners.forEach((l) => l.fn(sortByCreated(all.filter((f) => f.side === l.side))))
 }
 
-export function subscribe(fn) {
-  listeners.push(fn)
-  fn(families)
+let localListeners = []
+
+// ---------------------------------------------------------------- shared
+
+function sortByCreated(list) {
+  return [...list].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+}
+
+/**
+ * Watch one side's families. Calls fn(families) immediately and on every
+ * change. Returns an unsubscribe function.
+ */
+export function subscribe(side, fn) {
+  if (!side) {
+    fn([])
+    return () => {}
+  }
+
+  if (firebaseEnabled) {
+    let stop = null
+    let cancelled = false
+    initFirestore().then((f) => {
+      if (cancelled) return
+      // Single equality filter needs no composite index; sorting is done in JS.
+      const q = f.query(f.collection(f.db, COLLECTION), f.where('side', '==', side))
+      stop = f.onSnapshot(
+        q,
+        (snap) => fn(sortByCreated(snap.docs.map((d) => ({ id: d.id, ...d.data() })))),
+        (err) => console.error('Firestore sync error', err)
+      )
+    })
+    return () => {
+      cancelled = true
+      if (stop) stop()
+    }
+  }
+
+  const listener = { side, fn }
+  localListeners.push(listener)
+  fn(sortByCreated(loadLocal().filter((f) => f.side === side)))
   return () => {
-    listeners = listeners.filter((l) => l !== fn)
+    localListeners = localListeners.filter((l) => l !== listener)
   }
 }
 
-export function addFamily(data) {
-  const family = {
-    ...data,
-    id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    createdAt: Date.now(),
+export async function addFamily(data) {
+  const family = { ...data, createdAt: Date.now() }
+  if (firebaseEnabled) {
+    const f = await initFirestore()
+    await f.addDoc(f.collection(f.db, COLLECTION), family)
+    return family
   }
-  families = [...families, family]
-  persist()
+  family.id = 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+  saveLocal([...loadLocal(), family])
   return family
 }
 
-export function updateFamily(id, patch) {
-  families = families.map((f) => (f.id === id ? { ...f, ...patch } : f))
-  persist()
+export async function updateFamily(id, patch) {
+  if (firebaseEnabled) {
+    const f = await initFirestore()
+    await f.updateDoc(f.doc(f.db, COLLECTION, id), patch)
+    return
+  }
+  saveLocal(loadLocal().map((f) => (f.id === id ? { ...f, ...patch } : f)))
 }
 
-export function deleteFamily(id) {
-  families = families.filter((f) => f.id !== id)
-  persist()
+export async function deleteFamily(id) {
+  if (firebaseEnabled) {
+    const f = await initFirestore()
+    await f.deleteDoc(f.doc(f.db, COLLECTION, id))
+    return
+  }
+  saveLocal(loadLocal().filter((f) => f.id !== id))
 }
+
+// ---------------------------------------------------------------- counting
 
 // Men / women / children split for a family.
 // Families saved before this feature existed only had a single `memberCount`,
