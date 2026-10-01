@@ -107,13 +107,18 @@ export function subscribe(side, fn) {
   let cancelled = false
 
   if (supabaseEnabled) {
+    // Writes and realtime events can each trigger a reload, so several
+    // fetches may be in flight at once. Only the newest one may update the
+    // UI, otherwise a slow, older response could overwrite fresh data.
+    let latest = 0
     const load = async () => {
+      const seq = ++latest
       const { data, error } = await supabase
         .from(TABLE)
         .select('*')
         .eq('side', side)
         .order('created_at', { ascending: true })
-      if (cancelled) return
+      if (cancelled || seq !== latest) return
       if (error) {
         console.error('Supabase load failed', error.message)
         return
@@ -127,8 +132,12 @@ export function subscribe(side, fn) {
     // Any change to the table triggers a refetch of just this side's rows.
     // Refetching (rather than patching from the payload) keeps deletes and
     // partial updates correct with no extra edge cases.
+    // The channel name must be unique per subscription: removeChannel() is
+    // async, so re-subscribing right away (React StrictMode, logout/login)
+    // would otherwise get back the old, already-subscribed channel, and
+    // calling .on() on it throws.
     const channel = supabase
-      .channel(`families-${side}`)
+      .channel(`families-${side}-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, load)
       .subscribe()
 
@@ -144,9 +153,15 @@ export function subscribe(side, fn) {
   }
   loaders.add(load)
   load()
+  // Keep other open tabs of this browser in sync too.
+  const onStorage = (e) => {
+    if (e.key === STORAGE_KEY) load()
+  }
+  window.addEventListener('storage', onStorage)
   return () => {
     cancelled = true
     loaders.delete(load)
+    window.removeEventListener('storage', onStorage)
   }
 }
 
@@ -176,12 +191,13 @@ export async function updateFamily(id, patch) {
     if (error) {
       console.error('Could not update family', error.message)
       alert('Could not save that change. Check your internet connection.')
-      return
+      return false
     }
     reloadAll()
-    return
+    return true
   }
   saveLocal(loadLocal().map((f) => (f.id === id ? { ...f, ...patch } : f)))
+  return true
 }
 
 export async function deleteFamily(id) {
@@ -190,12 +206,13 @@ export async function deleteFamily(id) {
     if (error) {
       console.error('Could not delete family', error.message)
       alert('Could not delete that family. Check your internet connection.')
-      return
+      return false
     }
     reloadAll()
-    return
+    return true
   }
   saveLocal(loadLocal().filter((f) => f.id !== id))
+  return true
 }
 
 // ---------------------------------------------------------------- counting

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   X,
   Plus,
@@ -9,6 +9,13 @@ import {
   Baby,
 } from '@phosphor-icons/react'
 import { addFamily, updateFamily, CARD_STATUS_LABELS } from '../lib/store.js'
+
+// Whole, non-negative number from an input value, or null when blank/invalid.
+// The database columns are integers, so "2.5" or "-1" must never reach them.
+function toCount(value) {
+  const n = Math.floor(Number(value))
+  return Number.isFinite(n) && n > 0 ? n : null
+}
 
 export default function FamilyForm({ family, side, cities, tags, onClose }) {
   const [name, setName] = useState(family?.name || '')
@@ -37,6 +44,16 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   const [cardStatus, setCardStatus] = useState(family?.cardStatus || 'pending')
   const [notes, setNotes] = useState(family?.notes || '')
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  // Where the last mouse press started, so dragging a text selection out of
+  // an input and releasing on the backdrop doesn't close the form.
+  const pressedOnBackdrop = useRef(false)
+
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   function addMember() {
     const m = memberInput.trim()
@@ -84,8 +101,9 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
     setTagInput('')
   }
 
-  function save(e) {
+  async function save(e) {
     e.preventDefault()
+    if (saving) return
     if (!name.trim()) return setError('Family name is required.')
     if (!city.trim()) return setError('City is required. It is your main filter.')
 
@@ -101,7 +119,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
     const savedTagCounts = {}
     for (const t of selectedTags) {
       if (tagCounts[t] !== undefined && tagCounts[t] !== '') {
-        savedTagCounts[t] = Number(tagCounts[t]) || 0
+        savedTagCounts[t] = toCount(tagCounts[t]) || 0
       }
     }
 
@@ -112,9 +130,9 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
       phone: phone.trim(),
       members,
       memberTags: members.length ? savedMemberTags : {},
-      maleCount: members.length ? null : Number(maleCount) || null,
-      femaleCount: members.length ? null : Number(femaleCount) || null,
-      childCount: members.length ? null : Number(childCount) || null,
+      maleCount: members.length ? null : toCount(maleCount),
+      femaleCount: members.length ? null : toCount(femaleCount),
+      childCount: members.length ? null : toCount(childCount),
       tagCounts: members.length ? {} : savedTagCounts,
       memberCount: null, // replaced by the men/women/children split
       tags: selectedTags,
@@ -122,15 +140,26 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
       cardStatus,
       notes: notes.trim(),
     }
-    if (family) updateFamily(family.id, data)
-    else addFamily(data)
+    setError('')
+    setSaving(true)
+    const ok = family ? await updateFamily(family.id, data) : await addFamily(data)
+    setSaving(false)
+    // On failure keep the form open so nothing that was typed is lost.
+    if (!ok) return setError('Could not save. Please try again.')
     onClose()
   }
 
-  const guestTotal = (Number(maleCount) || 0) + (Number(femaleCount) || 0) + (Number(childCount) || 0)
+  const guestTotal = (toCount(maleCount) || 0) + (toCount(femaleCount) || 0) + (toCount(childCount) || 0)
 
   return (
-    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => (pressedOnBackdrop.current = e.target === e.currentTarget)}
+      onClick={(e) => {
+        if (pressedOnBackdrop.current && e.target === e.currentTarget) onClose()
+        pressedOnBackdrop.current = false
+      }}
+    >
       <form className="modal" onSubmit={save}>
         <div className="modal-head">
           <h2>{family ? 'Edit Family' : 'Add Family'}</h2>
@@ -376,8 +405,8 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
           <button type="button" className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
-            {family ? 'Save Changes' : 'Add Family'}
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? 'Saving...' : family ? 'Save Changes' : 'Add Family'}
           </button>
         </div>
       </form>

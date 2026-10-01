@@ -70,8 +70,12 @@ function exportCsv(families) {
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = 'wedding-invitations.csv'
+  // Firefox only downloads from links that are in the document, and revoking
+  // the URL straight after click() can cancel the download in Safari.
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(a.href)
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
 
 function printChecklist(families) {
@@ -108,6 +112,10 @@ function printChecklist(families) {
     )
     .join('')
   const w = window.open('', '_blank')
+  if (!w) {
+    alert('Please allow pop-ups for this site to print the checklist.')
+    return
+  }
   w.document.write(`<!doctype html><html><head><title>Invitation Checklist</title>
     <style>
       body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 24px; color: #3a2530; }
@@ -138,7 +146,7 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
         .toLowerCase()
       if (!haystack.includes(q)) return false
     }
-    if (filters.city && f.city !== filters.city) return false
+    if (filters.city && f.city.trim() !== filters.city) return false
     if (filters.tag && !(f.tags || []).includes(filters.tag)) return false
     if (filters.gift === true && !f.gift) return false
     if (filters.cardStatus === 'not-delivered' && f.cardStatus === 'delivered') return false

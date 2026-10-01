@@ -36,7 +36,14 @@ export function logout() {
 export function getSession() {
   try {
     const raw = localStorage.getItem(SESSION_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      // Only trust a saved session that still matches a current account, so
+      // removing or changing an account also logs that browser out.
+      const saved = JSON.parse(raw)
+      const account = ACCOUNTS.find((a) => a.email === saved?.email)
+      if (account) return { email: account.email, side: account.side, label: account.label }
+      localStorage.removeItem(SESSION_KEY)
+    }
   } catch (e) {
     console.error('Failed to read session', e)
   }
