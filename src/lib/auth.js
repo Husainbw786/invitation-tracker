@@ -25,12 +25,21 @@ export function login(email, password) {
   )
   if (!account) return null
   const session = { email: account.email, side: account.side, label: account.label }
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  } catch (e) {
+    // Private browsing / storage full: still log in, just not remembered.
+    console.error('Failed to save session', e)
+  }
   return session
 }
 
 export function logout() {
-  localStorage.removeItem(SESSION_KEY)
+  try {
+    localStorage.removeItem(SESSION_KEY)
+  } catch (e) {
+    console.error('Failed to clear session', e)
+  }
 }
 
 export function getSession() {

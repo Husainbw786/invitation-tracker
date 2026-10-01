@@ -141,9 +141,18 @@ export function subscribe(side, fn) {
       .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, load)
       .subscribe()
 
+    // Phones suspend background tabs and drop the realtime socket, so
+    // changes made meanwhile on another device would be missed. Refetch
+    // whenever the app comes back into view.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
       cancelled = true
       loaders.delete(load)
+      document.removeEventListener('visibilitychange', onVisible)
       supabase.removeChannel(channel)
     }
   }

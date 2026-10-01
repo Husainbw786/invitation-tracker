@@ -58,6 +58,13 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   function addMember() {
     const m = memberInput.trim()
     if (!m) return
+    // Function choices are stored per name, so two members with the same
+    // name would always share them. Ask for a distinguishing name instead.
+    if (members.some((x) => x.toLowerCase() === m.toLowerCase())) {
+      setError(`"${m}" is already on the list. Add something to tell them apart, e.g. "${m} (Mamu)".`)
+      return
+    }
+    setError('')
     setMembers((prev) => [...prev, m])
     setMemberInput('')
   }
@@ -75,7 +82,21 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
     }
   }
 
+  // Members with a customised list of functions would otherwise silently miss
+  // any function added to the family later. Everyone attends a new function
+  // by default, so add it to their lists too.
+  function includeTagForMembers(tag) {
+    setMemberTags((prev) => {
+      const next = {}
+      for (const [m, list] of Object.entries(prev)) {
+        next[m] = list.includes(tag) ? list : [...list, tag]
+      }
+      return next
+    })
+  }
+
   function toggleTag(tag) {
+    if (!selectedTags.includes(tag)) includeTagForMembers(tag)
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     )
@@ -97,6 +118,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   function addTag() {
     const t = tagInput.trim().toLowerCase()
     if (!t) return
+    if (!selectedTags.includes(t)) includeTagForMembers(t)
     setSelectedTags((prev) => (prev.includes(t) ? prev : [...prev, t]))
     setTagInput('')
   }
