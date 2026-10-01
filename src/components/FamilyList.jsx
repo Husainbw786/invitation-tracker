@@ -31,6 +31,15 @@ function nextStatus(status) {
   return CARD_STATUSES[(i + 1) % CARD_STATUSES.length]
 }
 
+// Excel and Google Sheets treat a cell starting with = + - or @ as a formula,
+// so a phone number like "+91 98200 11223" shows as an error (and a crafted
+// value could run as a formula). A leading apostrophe forces plain text.
+function csvCell(value) {
+  let v = String(value)
+  if (/^[=+\-@\t\r]/.test(v)) v = "'" + v
+  return `"${v.replaceAll('"', '""')}"`
+}
+
 function exportCsv(families) {
   const header = [
     'Family',
@@ -64,7 +73,7 @@ function exportCsv(families) {
     ]
   })
   const csv = [header, ...rows]
-    .map((r) => r.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(','))
+    .map((r) => r.map(csvCell).join(','))
     .join('\n')
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
   const a = document.createElement('a')

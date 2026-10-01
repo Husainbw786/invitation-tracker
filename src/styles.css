@@ -269,6 +269,12 @@ textarea {
   box-shadow: 0 6px 20px rgba(200, 54, 95, 0.5);
 }
 
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn-small {
   padding: 7px 11px;
   font-size: 13px;
