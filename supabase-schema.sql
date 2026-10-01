@@ -38,5 +38,13 @@ create policy "app full access" on public.families
 -- Emit complete rows on update/delete so live sync stays correct.
 alter table public.families replica identity full;
 
--- Turn on realtime for this table.
-alter publication supabase_realtime add table public.families;
+-- Turn on realtime for this table (skipped if already on, so re-runs work).
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'families'
+  ) then
+    alter publication supabase_realtime add table public.families;
+  end if;
+end $$;
