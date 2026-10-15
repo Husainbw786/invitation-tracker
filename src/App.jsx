@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus, SignOut, Heart } from '@phosphor-icons/react'
 import { subscribe } from './lib/store.js'
-import { getSession, logout } from './lib/auth.js'
+import { logout, watchSession } from './lib/auth.js'
 import Dashboard from './components/Dashboard.jsx'
 import FamilyList from './components/FamilyList.jsx'
 import FamilyForm from './components/FamilyForm.jsx'
@@ -10,21 +10,27 @@ import Login from './components/Login.jsx'
 const EMPTY_FILTERS = { search: '', city: null, tag: null, gift: null, cardStatus: null }
 
 export default function App() {
-  const [session, setSession] = useState(getSession)
+  // undefined while Firebase restores a saved login, then a session or null.
+  const [session, setSession] = useState(undefined)
   const [families, setFamilies] = useState([])
   const [tab, setTab] = useState('dashboard') // 'dashboard' | 'list'
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [editing, setEditing] = useState(null) // null | 'new' | family object
 
+  useEffect(() => watchSession(setSession), [])
+
   // Subscribe to just this side's guest list, so Husain's and Zainab's
   // families never load each other's data.
+  // Keyed on the side, not the session object, which Firebase recreates on
+  // every auth event.
+  const side = session?.side
   useEffect(() => {
-    if (!session) {
+    if (!side) {
       setFamilies([])
       return
     }
-    return subscribe(session.side, setFamilies)
-  }, [session])
+    return subscribe(side, setFamilies)
+  }, [side])
 
   const cities = useMemo(
     () => [...new Set(families.map((f) => f.city.trim()).filter(Boolean))].sort(),
@@ -35,6 +41,10 @@ export default function App() {
     [families]
   )
 
+  if (session === undefined) {
+    return <div className="login-page" />
+  }
+
   if (!session) {
     return <Login onLogin={setSession} />
   }
@@ -44,8 +54,8 @@ export default function App() {
     setTab('list')
   }
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await logout()
     setSession(null)
     setTab('dashboard')
     setFilters(EMPTY_FILTERS)

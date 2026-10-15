@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// Security rules for the wedding invitation manager.
+// Paste this into: Firebase console -> Firestore Database -> Rules -> Publish.
+//
+// Each logged-in account may only read and write its own side's families.
+// Keep the email list in sync with ACCOUNTS in src/lib/auth.js.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The side of the logged-in account, or '' for any other account.
+    // When nobody is logged in, request.auth is null and reading it fails,
+    // which Firestore treats as "deny".
+    function mySide() {
+      return {
+        'husainhackerrank@gmail.com': 'husain',
+        'zmalik1418@gmail.com': 'zainab'
+      }.get(request.auth.token.email, '');
+    }
+
+    function validFamily(d) {
+      return d.side == mySide()
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 200
+        && d.keys().hasOnly([
+          'side', 'name', 'city', 'phone', 'members', 'memberTags', 'tagCounts',
+          'tags', 'maleCount', 'femaleCount', 'childCount', 'memberCount',
+          'gift', 'cardStatus', 'notes', 'createdAt'
+        ]);
+    }
+
+    match /families/{familyId} {
+      allow read, delete: if mySide() != '' && resource.data.side == mySide();
+      allow create: if mySide() != '' && validFamily(request.resource.data);
+      allow update: if mySide() != '' && resource.data.side == mySide()
+        && validFamily(request.resource.data);
+    }
+  }
+}
