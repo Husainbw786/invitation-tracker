@@ -12,10 +12,10 @@ export default function Login({ onLogin }) {
     e.preventDefault()
     setBusy(true)
     setError('')
-    const session = await login(email, password)
+    const { session, error } = await login(email, password)
     setBusy(false)
-    if (!session) {
-      setError('Email or password is wrong. Please try again.')
+    if (error) {
+      setError(error)
       return
     }
     onLogin(session)

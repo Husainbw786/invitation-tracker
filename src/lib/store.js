@@ -1,218 +1,134 @@
-// Data layer for the app. The same API works in both modes, so no component
-// needs to know which one is active:
-//   - Cloud mode (Supabase): shared across every device, live-synced.
-//   - Local mode: this browser's localStorage only.
+// Data layer for the app, backed by Cloud Firestore. Every family is one
+// document in the `families` collection, shared across every device and
+// live-synced.
 //
 // Every subscription is scoped to one side ('husain' | 'zainab'), so a side
-// only ever fetches its own guest list.
+// only ever fetches its own guest list. The Firestore rules enforce the same
+// thing on the server.
 
-import { supabase, supabaseEnabled, TABLE } from './supabase.js'
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  updateDoc,
+  where,
+} from 'firebase/firestore'
+import { db, COLLECTION } from './firebase.js'
 
-const STORAGE_KEY = 'wedding-invites:families:v2'
+const families = collection(db, COLLECTION)
 
-// Postgres uses snake_case, the app uses camelCase. Mapped in one place so
-// adding a field means adding one line here plus one column in the table.
-const COLUMN = {
-  side: 'side',
-  name: 'name',
-  city: 'city',
-  phone: 'phone',
-  members: 'members',
-  memberTags: 'member_tags',
-  tagCounts: 'tag_counts',
-  tags: 'tags',
-  maleCount: 'male_count',
-  femaleCount: 'female_count',
-  childCount: 'child_count',
-  memberCount: 'member_count',
-  gift: 'gift',
-  cardStatus: 'card_status',
-  notes: 'notes',
-}
+// The fields a family document may hold. Anything else is dropped on write,
+// and `id` is the document id, never a field.
+const FIELDS = [
+  'side',
+  'name',
+  'city',
+  'phone',
+  'members',
+  'memberTags',
+  'tagCounts',
+  'tags',
+  'maleCount',
+  'femaleCount',
+  'childCount',
+  'memberCount',
+  'gift',
+  'cardStatus',
+  'notes',
+]
 
-function fromRow(r) {
+function fromDoc(snap) {
+  const d = snap.data()
   return {
-    id: r.id,
-    side: r.side,
-    name: r.name || '',
-    city: r.city || '',
-    phone: r.phone || '',
-    members: r.members || [],
-    memberTags: r.member_tags || {},
-    tagCounts: r.tag_counts || {},
-    tags: r.tags || [],
-    maleCount: r.male_count,
-    femaleCount: r.female_count,
-    childCount: r.child_count,
-    memberCount: r.member_count,
-    gift: Boolean(r.gift),
-    cardStatus: r.card_status || 'pending',
-    notes: r.notes || '',
-    createdAt: r.created_at ? new Date(r.created_at).getTime() : 0,
+    id: snap.id,
+    side: d.side,
+    name: d.name || '',
+    city: d.city || '',
+    phone: d.phone || '',
+    members: d.members || [],
+    memberTags: d.memberTags || {},
+    tagCounts: d.tagCounts || {},
+    tags: d.tags || [],
+    maleCount: d.maleCount ?? null,
+    femaleCount: d.femaleCount ?? null,
+    childCount: d.childCount ?? null,
+    memberCount: d.memberCount ?? null,
+    gift: Boolean(d.gift),
+    cardStatus: d.cardStatus || 'pending',
+    notes: d.notes || '',
+    createdAt: Number(d.createdAt) || 0,
   }
 }
 
-// Only maps keys that are present, so partial updates stay partial.
-// `id` and `created_at` are owned by the database and never written.
-function toRow(obj) {
-  const row = {}
-  for (const [key, value] of Object.entries(obj)) {
-    const col = COLUMN[key]
-    if (col) row[col] = value
+// Only copies keys that are present, so partial updates stay partial.
+function pick(obj) {
+  const out = {}
+  for (const key of FIELDS) {
+    if (key in obj) out[key] = obj[key]
   }
-  return row
-}
-
-// Active reload functions, one per subscription. Called after every local
-// write so the UI updates instantly even if realtime is not enabled.
-let loaders = new Set()
-
-function reloadAll() {
-  loaders.forEach((load) => load())
-}
-
-// ---------------------------------------------------------------- local mode
-
-function loadLocal() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch (e) {
-    console.error('Failed to load saved data', e)
-    return []
-  }
-}
-
-function saveLocal(all) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
-  reloadAll()
-}
-
-function sortByCreated(list) {
-  return [...list].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+  return out
 }
 
 // ---------------------------------------------------------------- public API
 
 /**
  * Watch one side's families. Calls fn(families) with the current list and
- * again on every change. Returns an unsubscribe function.
+ * again on every change, including this device's own writes (instantly) and
+ * other devices' writes (live). Returns an unsubscribe function.
  */
 export function subscribe(side, fn) {
   if (!side) {
     fn([])
     return () => {}
   }
-
-  let cancelled = false
-
-  if (supabaseEnabled) {
-    // Writes and realtime events can each trigger a reload, so several
-    // fetches may be in flight at once. Only the newest one may update the
-    // UI, otherwise a slow, older response could overwrite fresh data.
-    let latest = 0
-    const load = async () => {
-      const seq = ++latest
-      const { data, error } = await supabase
-        .from(TABLE)
-        .select('*')
-        .eq('side', side)
-        .order('created_at', { ascending: true })
-      if (cancelled || seq !== latest) return
-      if (error) {
-        console.error('Supabase load failed', error.message)
-        return
-      }
-      fn(data.map(fromRow))
-    }
-
-    loaders.add(load)
-    load()
-
-    // Any change to the table triggers a refetch of just this side's rows.
-    // Refetching (rather than patching from the payload) keeps deletes and
-    // partial updates correct with no extra edge cases.
-    // The channel name must be unique per subscription: removeChannel() is
-    // async, so re-subscribing right away (React StrictMode, logout/login)
-    // would otherwise get back the old, already-subscribed channel, and
-    // calling .on() on it throws.
-    const channel = supabase
-      .channel(`families-${side}-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, load)
-      .subscribe()
-
-    return () => {
-      cancelled = true
-      loaders.delete(load)
-      supabase.removeChannel(channel)
-    }
-  }
-
-  const load = () => {
-    if (!cancelled) fn(sortByCreated(loadLocal().filter((f) => f.side === side)))
-  }
-  loaders.add(load)
-  load()
-  // Keep other open tabs of this browser in sync too.
-  const onStorage = (e) => {
-    if (e.key === STORAGE_KEY) load()
-  }
-  window.addEventListener('storage', onStorage)
-  return () => {
-    cancelled = true
-    loaders.delete(load)
-    window.removeEventListener('storage', onStorage)
-  }
+  // Sorted here rather than with orderBy, which would need a composite index.
+  return onSnapshot(
+    query(families, where('side', '==', side)),
+    (snap) => fn(snap.docs.map(fromDoc).sort((a, b) => a.createdAt - b.createdAt)),
+    (error) => console.error('Firestore load failed', error.code, error.message)
+  )
 }
 
 export async function addFamily(data) {
-  if (supabaseEnabled) {
-    const { error } = await supabase.from(TABLE).insert(toRow(data))
-    if (error) {
-      console.error('Could not add family', error.message)
-      alert('Could not save this family. Check your internet connection.')
-      return null
-    }
-    reloadAll()
-    return data
+  try {
+    const ref = await addDoc(families, { ...pick(data), createdAt: Date.now() })
+    return { ...data, id: ref.id }
+  } catch (e) {
+    console.error('Could not add family', e.code, e.message)
+    alert('Could not save this family. Check your internet connection.')
+    return null
   }
-  const family = {
-    ...data,
-    id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    createdAt: Date.now(),
-  }
-  saveLocal([...loadLocal(), family])
-  return family
 }
 
 export async function updateFamily(id, patch) {
-  if (supabaseEnabled) {
-    const { error } = await supabase.from(TABLE).update(toRow(patch)).eq('id', id)
-    if (error) {
-      console.error('Could not update family', error.message)
-      alert('Could not save that change. Check your internet connection.')
-      return false
-    }
-    reloadAll()
+  try {
+    // Fails with not-found if the family was deleted on another device,
+    // instead of silently reporting success.
+    await updateDoc(doc(families, id), pick(patch))
     return true
+  } catch (e) {
+    console.error('Could not update family', e.code, e.message)
+    alert(
+      e.code === 'not-found'
+        ? 'This family was deleted on another device.'
+        : 'Could not save that change. Check your internet connection.'
+    )
+    return false
   }
-  saveLocal(loadLocal().map((f) => (f.id === id ? { ...f, ...patch } : f)))
-  return true
 }
 
 export async function deleteFamily(id) {
-  if (supabaseEnabled) {
-    const { error } = await supabase.from(TABLE).delete().eq('id', id)
-    if (error) {
-      console.error('Could not delete family', error.message)
-      alert('Could not delete that family. Check your internet connection.')
-      return false
-    }
-    reloadAll()
+  try {
+    await deleteDoc(doc(families, id))
     return true
+  } catch (e) {
+    console.error('Could not delete family', e.code, e.message)
+    alert('Could not delete that family. Check your internet connection.')
+    return false
   }
-  saveLocal(loadLocal().filter((f) => f.id !== id))
-  return true
 }
 
 // ---------------------------------------------------------------- counting

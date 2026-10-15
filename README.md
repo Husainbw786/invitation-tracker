@@ -28,33 +28,28 @@ npm run dev
 
 ## Logins
 
-Accounts are defined in [`src/lib/auth.js`](src/lib/auth.js) — edit that file to
-change emails/passwords or add more accounts for relatives (each account is
-assigned to one side: `husain` or `zainab`).
+Logins use **Firebase Authentication** (email + password). The two accounts are
+listed in [`src/lib/auth.js`](src/lib/auth.js), each assigned to one side
+(`husain` or `zainab`). Passwords are set in the Firebase console under
+**Security → Authentication → Users**, never in the code.
+
+To add an account for a relative: create the user in the Firebase console, add
+the email to `ACCOUNTS` in `src/lib/auth.js`, and add the same email to the map
+in [`firestore.rules`](firestore.rules).
 
 ## Data
 
-Families are stored in **Supabase** (hosted Postgres) in a single `families`
-table, and sync live to every device: add a family on one phone and it appears
-on the others within a second, no refresh.
+Families are stored in **Cloud Firestore** (Firebase project
+`wedding-invites-8e5ff`), one document per family in the `families`
+collection. Changes sync live to every device: add a family on one phone and it
+appears on the others within a second, no refresh. The free Spark plan never
+pauses, however long the app goes unused.
 
-Each row carries a `side` column (`husain` / `zainab`) and the app only ever
-queries its own side, so the two families keep separate guest lists.
-
-The schema lives in [`supabase-schema.sql`](supabase-schema.sql).
-
-### Two things to know
-
-1. **Access is open.** The app logs in with a hardcoded check in the browser, so
-   Postgres cannot verify who is asking and the Row Level Security policy must
-   allow the publishable key full access. Anyone who knows the site URL can read
-   or delete the guest list. Keep the URL private, and use **Export CSV**
-   occasionally as a backup. To lock it down properly, switch to Supabase Auth
-   and change the policy to `using (auth.uid() is not null)`.
-2. **Free projects pause after 7 days idle.** A GitHub Action
-   ([`keep-supabase-awake.yml`](.github/workflows/keep-supabase-awake.yml)) pings
-   the database every 3 days to prevent that. If the app ever shows no data,
-   check whether the project was paused in the Supabase dashboard.
+Each document carries a `side` field (`husain` / `zainab`). The security rules
+in [`firestore.rules`](firestore.rules) only let a logged-in account read and
+write its own side, so the two families keep separate, private guest lists.
+After changing that file, paste it into **Firestore Database → Rules** and
+click **Publish**.
 
 ## Deploy
 
@@ -66,4 +61,4 @@ Deploy the `dist/` folder to any static host (Vercel / Netlify / GitHub Pages).
 
 ## Tech
 
-React + Vite · localStorage · no backend, no other dependencies.
+React + Vite · Firebase (Auth + Firestore) · no backend of our own.
