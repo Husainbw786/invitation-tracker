@@ -18,6 +18,9 @@ manage their own separate guest list.
 - **Gifts** — mark which families get a gift; total shown on the dashboard.
 - **Login by side** — each side's email sees only its own list.
 - **Export & print** — CSV export and a print-friendly per-city delivery checklist.
+- **Install as an app** — tap **Install App** (Chrome on Android/desktop) to put
+  it on the home screen; it opens full-screen like a normal app. On iPhone use
+  Safari → Share → **Add to Home Screen**.
 
 ## Run locally
 

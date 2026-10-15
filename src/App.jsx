@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard.jsx'
 import FamilyList from './components/FamilyList.jsx'
 import FamilyForm from './components/FamilyForm.jsx'
 import Login from './components/Login.jsx'
+import InstallButton from './components/InstallButton.jsx'
 
 const EMPTY_FILTERS = { search: '', city: null, tag: null, gift: null, cardStatus: null }
 
@@ -82,6 +83,7 @@ export default function App() {
             <button className="btn btn-primary" onClick={() => setEditing('new')}>
               <Plus size={17} weight="bold" /> Add Family
             </button>
+            <InstallButton className="logout-btn" labelClassName="logout-text" />
             <button className="logout-btn" onClick={handleLogout} title="Logout">
               <SignOut size={16} />
               <span className="logout-text">Logout</span>
