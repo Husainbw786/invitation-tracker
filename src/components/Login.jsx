@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Heart } from '@phosphor-icons/react'
 import { login } from '../lib/auth.js'
+import InstallButton from './InstallButton.jsx'
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('')
@@ -60,6 +61,8 @@ export default function Login({ onLogin }) {
         <button type="submit" className="btn btn-primary login-btn" disabled={busy}>
           {busy ? 'Logging in...' : 'Login'}
         </button>
+
+        <InstallButton className="btn login-install" />
 
         <p className="login-hint">
           Husain's side and Zainab's side each have their own login. Every side sees
