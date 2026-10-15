@@ -51,16 +51,6 @@ write its own side, so the two families keep separate, private guest lists.
 After changing that file, paste it into **Firestore Database → Rules** and
 click **Publish**.
 
-### Moving the old data from Supabase
-
-The guest list used to live in Supabase. To copy it into Firestore once, run
-this for each side (it is safe to run again; it never creates duplicates):
-
-```bash
-EMAIL=husainhackerrank@gmail.com PASSWORD='...' npm run migrate
-EMAIL=zmalik1418@gmail.com       PASSWORD='...' npm run migrate
-```
-
 ## Deploy
 
 ```bash

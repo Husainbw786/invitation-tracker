@@ -11,8 +11,7 @@ import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { initializeFirestore } from 'firebase/firestore'
 
-// `import.meta.env` only exists under Vite; the migration script runs in plain Node.
-const env = import.meta.env || {}
+const env = import.meta.env
 
 const firebaseConfig = {
   apiKey: env.VITE_FIREBASE_API_KEY || 'AIzaSyCxRxVWvvtcoDn2JZ7oZQOfLCZFYAlL0vs',
