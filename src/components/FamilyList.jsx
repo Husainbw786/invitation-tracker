@@ -3,7 +3,6 @@ import {
   MagnifyingGlass,
   Printer,
   DownloadSimple,
-  MapPin,
   Users,
   Gift,
   Phone,
@@ -11,7 +10,8 @@ import {
   Trash,
   ArrowRight,
   X,
-  Note,
+  Check,
+  CaretDown,
   GenderMale,
   GenderFemale,
   Baby,
@@ -25,6 +25,12 @@ import {
   CARD_STATUSES,
   CARD_STATUS_LABELS,
 } from '../lib/store.js'
+
+const STATUS_FILTER_LABELS = { ...CARD_STATUS_LABELS, 'not-delivered': 'Not delivered yet' }
+
+function plural(n, one, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`
+}
 
 function nextStatus(status) {
   const i = CARD_STATUSES.indexOf(status)
@@ -118,16 +124,16 @@ function printChecklist(families) {
   }
   w.document.write(`<!doctype html><html><head><title>Invitation Checklist</title>
     <style>
-      body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 24px; color: #3a2530; }
-      h1 { font-size: 22px; color: #9d2249; }
-      h2 { font-size: 16px; margin: 24px 0 8px; color: #9d2249; }
-      h2 .count { font-size: 12px; color: #9a8088; font-weight: 400; }
+      body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 24px; color: #2a2421; }
+      h1 { font-size: 22px; color: #2f4f7f; }
+      h2 { font-size: 16px; margin: 24px 0 8px; color: #2f4f7f; }
+      h2 .count { font-size: 12px; color: #6a5e55; font-weight: 400; }
       table { width: 100%; border-collapse: collapse; font-size: 13px; }
-      th, td { border: 1px solid #e6c6ce; padding: 7px 9px; text-align: left; }
-      th { background: #fbeef0; }
+      th, td { border: 1px solid #d8cbb8; padding: 7px 9px; text-align: left; }
+      th { background: #f4eee4; }
       .box { font-size: 17px; text-align: center; width: 30px; }
-      .notes { color: #9a8088; font-size: 11px; font-style: italic; }
-      .legend { font-size: 11px; color: #9a8088; margin-top: 4px; }
+      .notes { color: #6a5e55; font-size: 11px; font-style: italic; }
+      .legend { font-size: 11px; color: #6a5e55; margin-top: 4px; }
     </style></head><body>
     <h1>Invitation delivery checklist</h1>
     <p class="legend">M = men, W = women, C = children</p>${sections}
@@ -171,53 +177,82 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
   return (
     <div className="family-list rise">
       <div className="filter-bar">
-        <div className="search-wrap">
+        <label className="search-wrap">
           <MagnifyingGlass className="i" size={18} />
           <input
             type="search"
             className="search-input"
-            placeholder="Search family, member, or city"
+            aria-label="Search families"
+            placeholder="Search family, member, city or phone"
             value={filters.search}
             onChange={(e) => set({ search: e.target.value })}
           />
-        </div>
+        </label>
         <div className="filter-row">
-          <select value={filters.city || ''} onChange={(e) => set({ city: e.target.value || null })}>
-            <option value="">All cities</option>
-            {cities.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-          <select value={filters.tag || ''} onChange={(e) => set({ tag: e.target.value || null })}>
-            <option value="">All tags</option>
-            {tags.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-          <select
-            value={filters.cardStatus || ''}
-            onChange={(e) => set({ cardStatus: e.target.value || null })}
-          >
-            <option value="">Any card status</option>
-            <option value="pending">Pending</option>
-            <option value="written">Card Written</option>
-            <option value="delivered">Delivered</option>
-            <option value="not-delivered">Not delivered yet</option>
-          </select>
-          <label className="gift-filter">
+          {/* Each pill shows the chosen value; the real <select> sits invisibly on
+              top, so the pill is only as wide as its text, not its longest option. */}
+          <span className={filters.city ? 'select-pill active' : 'select-pill'}>
+            <span className="select-pill-text">{filters.city || 'City'}</span>
+            <CaretDown className="i" size={13} weight="bold" />
+            <select
+              aria-label="Filter by city"
+              value={filters.city || ''}
+              onChange={(e) => set({ city: e.target.value || null })}
+            >
+              <option value="">All cities</option>
+              {cities.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </span>
+          <span className={filters.tag ? 'select-pill active' : 'select-pill'}>
+            <span className="select-pill-text">{filters.tag || 'Tag'}</span>
+            <CaretDown className="i" size={13} weight="bold" />
+            <select
+              aria-label="Filter by tag"
+              value={filters.tag || ''}
+              onChange={(e) => set({ tag: e.target.value || null })}
+            >
+              <option value="">All tags</option>
+              {tags.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </span>
+          <span className={filters.cardStatus ? 'select-pill active' : 'select-pill'}>
+            <span className="select-pill-text">
+              {STATUS_FILTER_LABELS[filters.cardStatus] || 'Status'}
+            </span>
+            <CaretDown className="i" size={13} weight="bold" />
+            <select
+              aria-label="Filter by card status"
+              value={filters.cardStatus || ''}
+              onChange={(e) => set({ cardStatus: e.target.value || null })}
+            >
+              <option value="">Any card status</option>
+              {Object.entries(STATUS_FILTER_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </span>
+          <label className={filters.gift ? 'chip-toggle on' : 'chip-toggle'}>
             <input
               type="checkbox"
               checked={filters.gift === true}
               onChange={(e) => set({ gift: e.target.checked ? true : null })}
             />
-            <Gift size={16} weight="fill" /> Gift only
+            {filters.gift ? <Check size={14} weight="bold" /> : <Gift size={14} />} Gifts
           </label>
         </div>
       </div>
 
       <div className="list-meta">
-        <span>
-          <strong>{filtered.length}</strong> families, <strong>{totalGuests}</strong> guests
+        <div className="list-summary">
+          <span className="list-count">
+            {plural(filtered.length, 'family', 'families')} · {plural(totalGuests, 'guest')}
+          </span>
           {hasActiveFilters && (
             <button
               className="link-btn"
@@ -228,13 +263,17 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
               Clear filters <X size={13} weight="bold" />
             </button>
           )}
-        </span>
+        </div>
         <span className="list-actions">
           <button className="btn btn-small" onClick={() => printChecklist(filtered)}>
             <Printer size={15} /> Print
           </button>
-          <button className="btn btn-small" onClick={() => exportCsv(filtered)}>
-            <DownloadSimple size={15} /> Export CSV
+          <button
+            className="btn btn-small"
+            onClick={() => exportCsv(filtered)}
+            title="Export as CSV"
+          >
+            <DownloadSimple size={15} /> CSV
           </button>
         </span>
       </div>
@@ -248,40 +287,33 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
           const isOpen = expanded === f.id
           const count = effectiveCount(f)
           const breakdown = countBreakdown(f)
+          const meta = [f.city, plural(count, 'guest'), f.gift && 'gift'].filter(Boolean)
           return (
-            <li key={f.id} className="family-card">
-              <button className="family-head" onClick={() => setExpanded(isOpen ? null : f.id)}>
-                <div className="family-title">
-                  <h3>{f.name}</h3>
-                  <p>
-                    <span className="meta-item">
-                      <MapPin size={13} weight="fill" /> {f.city}
-                    </span>
-                    <span className="meta-item">
-                      <Users size={13} weight="fill" /> {count} guest{count > 1 ? 's' : ''}
-                    </span>
-                    {f.gift && (
-                      <span className="meta-item">
-                        <Gift size={13} weight="fill" />
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <span className={`status-pill status-${f.cardStatus}`}>
+            <li key={f.id} className={isOpen ? 'family-card open' : 'family-card'}>
+              <button
+                className="family-head"
+                aria-expanded={isOpen}
+                onClick={() => setExpanded(isOpen ? null : f.id)}
+              >
+                <span className="family-title">
+                  <span className="family-name">{f.name}</span>
+                  <span className="family-meta">{meta.join(' · ')}</span>
+                </span>
+                <span className={`stamp stamp-${f.cardStatus}`}>
                   {CARD_STATUS_LABELS[f.cardStatus]}
                 </span>
               </button>
 
               <div className="quick-actions">
                 <button
-                  className="btn btn-small"
+                  className="btn btn-small btn-soft"
                   onClick={() => updateFamily(f.id, { cardStatus: nextStatus(f.cardStatus) })}
                   title="Advance card status"
                 >
                   Card: {CARD_STATUS_LABELS[f.cardStatus]} <ArrowRight size={14} weight="bold" />
                 </button>
                 <button
-                  className={f.gift ? 'btn btn-small btn-gift on' : 'btn btn-small btn-gift'}
+                  className={f.gift ? 'btn btn-small btn-soft btn-gift on' : 'btn btn-small btn-soft btn-gift'}
                   onClick={() => updateFamily(f.id, { gift: !f.gift })}
                 >
                   <Gift size={14} weight={f.gift ? 'fill' : 'regular'} /> Gift: {f.gift ? 'Yes' : 'No'}
@@ -291,14 +323,13 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
               {isOpen && (
                 <div className="family-detail">
                   {f.phone && (
-                    <p>
-                      <Phone size={15} weight="fill" />{' '}
-                      <a href={`tel:${f.phone.replaceAll(' ', '')}`}>{f.phone}</a>
-                    </p>
+                    <a className="detail-phone" href={`tel:${f.phone.replaceAll(' ', '')}`}>
+                      <Phone size={15} /> {f.phone}
+                    </a>
                   )}
                   {f.members && f.members.length > 0 && (
                     <p className="member-list-line">
-                      <Users size={15} weight="fill" /> <strong>Members:</strong>{' '}
+                      <strong>Members:</strong>{' '}
                       {f.members.map((m, i) => {
                         const explicit = f.memberTags?.[m]
                         return (
@@ -319,7 +350,7 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                     <p className="detail-breakdown">
                       {breakdown.untyped ? (
                         <span className="bd-item">
-                          <Users size={14} weight="fill" /> {breakdown.total} guests (not split)
+                          <Users size={14} /> {breakdown.total} guests (not split)
                         </span>
                       ) : (
                         <>
@@ -355,11 +386,7 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                       })}
                     </p>
                   )}
-                  {f.notes && (
-                    <p className="notes">
-                      <Note size={15} /> {f.notes}
-                    </p>
-                  )}
+                  {f.notes && <p className="notes">{f.notes}</p>}
                   <div className="detail-actions">
                     <button className="btn btn-small" onClick={() => onEdit(f)}>
                       <PencilSimple size={14} /> Edit

@@ -1,16 +1,18 @@
-import {
-  Users,
-  UsersThree,
-  Gift,
-  Envelope,
-  MapPin,
-  Tag,
-  Confetti,
-  GenderMale,
-  GenderFemale,
-  Baby,
-} from '@phosphor-icons/react'
+import { Confetti } from '@phosphor-icons/react'
 import { effectiveCount, countBreakdown, tagAttendance } from '../lib/store.js'
+
+function plural(n, one, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`
+}
+
+// The hero's one-line summary of how the card deliveries are going.
+function deliveryHeadline(delivered, total) {
+  const left = total - delivered
+  if (total === 0) return 'Your list starts here'
+  if (left === 0) return `All ${plural(total, 'card')} delivered`
+  if (delivered === 0) return `${plural(left, 'card')} to go`
+  return `${plural(delivered, 'card')} out, ${left} to go`
+}
 
 export default function Dashboard({ families, onDrillDown }) {
   const totalFamilies = families.length
@@ -57,82 +59,71 @@ export default function Dashboard({ families, onDrillDown }) {
   return (
     <div className="dashboard rise">
       <section className="hero">
-        <span className="hero-photo">
-          <img src="/couple-sticker.jpeg" alt="Husain and Zainab" />
-        </span>
         <div className="hero-text">
-          <p className="hero-script">Our Wedding</p>
-          <p className="hero-sub">Every invitation, kept in one beautiful place</p>
+          <p className="hero-note">our wedding</p>
+          <h2 className="hero-headline">{deliveryHeadline(delivered, totalFamilies)}</h2>
+          {totalFamilies > 0 && (
+            <div
+              className="hero-progress"
+              role="img"
+              aria-label={`${delivered} of ${totalFamilies} cards delivered`}
+            >
+              {delivered > 0 && <span className="seg seg-done" style={{ flexGrow: delivered }} />}
+              {pendingCards > 0 && <span className="seg" style={{ flexGrow: pendingCards }} />}
+            </div>
+          )}
         </div>
-        <span className="hero-photo hero-photo-right">
-          <img src="/couple-art1.jpeg" alt="Husain and Zainab" />
-        </span>
+        <figure className="polaroid polaroid-hero">
+          <img src="/couple-painting.jpeg" alt="Painted portrait of Husain and Zainab" />
+          <figcaption>us</figcaption>
+          <span className="tape" aria-hidden="true" />
+        </figure>
       </section>
 
       <section className="stat-grid">
         <button className="stat-card" onClick={() => onDrillDown({})}>
-          <span className="stat-icon">
-            <Users size={20} weight="duotone" />
-          </span>
           <span className="stat-value">{totalFamilies}</span>
-          <span className="stat-label">Families Invited</span>
+          <span className="stat-label">Families invited</span>
         </button>
         <div className="stat-card">
-          <span className="stat-icon">
-            <UsersThree size={20} weight="duotone" />
-          </span>
           <span className="stat-value">{totalMembers}</span>
-          <span className="stat-label">Total Guests</span>
+          <span className="stat-label">Total guests</span>
         </div>
         <button className="stat-card" onClick={() => onDrillDown({ gift: true })}>
-          <span className="stat-icon">
-            <Gift size={20} weight="duotone" />
-          </span>
           <span className="stat-value">{giftCount}</span>
-          <span className="stat-label">Gifts To Give</span>
+          <span className="stat-label">Gifts to give</span>
         </button>
         <button
           className="stat-card"
           onClick={() => onDrillDown({ cardStatus: 'not-delivered' })}
         >
-          <span className="stat-icon">
-            <Envelope size={20} weight="duotone" />
-          </span>
           <span className="stat-value">
-            {delivered}
-            <small> / {totalFamilies}</small>
+            {delivered} <span className="stat-of">of {totalFamilies}</span>
           </span>
-          <span className="stat-label">Cards Delivered ({pendingCards} left)</span>
+          <span className="stat-label">Cards delivered</span>
         </button>
       </section>
 
       {hasSplit && (
-        <section className="breakdown-card">
-          <span className="breakdown-title">Guest breakdown</span>
-          <div className="breakdown-row">
-            <div className="bd-cell">
-              <GenderMale size={19} weight="bold" />
-              <strong>{guests.male}</strong>
-              <span>Men</span>
-            </div>
-            <div className="bd-cell">
-              <GenderFemale size={19} weight="bold" />
-              <strong>{guests.female}</strong>
-              <span>Women</span>
-            </div>
-            <div className="bd-cell">
-              <Baby size={19} weight="bold" />
-              <strong>{guests.child}</strong>
-              <span>Children</span>
-            </div>
-            {guests.untyped > 0 && (
-              <div className="bd-cell bd-cell-muted">
-                <Users size={19} weight="fill" />
-                <strong>{guests.untyped}</strong>
-                <span>Not split</span>
-              </div>
-            )}
+        <section className="breakdown" aria-label="Guest breakdown">
+          <div className="bd-cell">
+            <strong>{guests.male}</strong>
+            <span>Men</span>
           </div>
+          <div className="bd-cell">
+            <strong>{guests.female}</strong>
+            <span>Women</span>
+          </div>
+          <div className="bd-cell">
+            <strong>{guests.child}</strong>
+            <span>Children</span>
+          </div>
+          {guests.untyped > 0 && (
+            <div className="bd-cell bd-cell-muted">
+              <strong>{guests.untyped}</strong>
+              <span>Not split</span>
+            </div>
+          )}
         </section>
       )}
 
@@ -140,14 +131,15 @@ export default function Dashboard({ families, onDrillDown }) {
         <p className="empty-hint">
           <Confetti className="empty-icon i" size={30} weight="duotone" />
           <br />
-          No families added yet. Tap <strong>Add Family</strong> above to start your list.
+          No families added yet. Tap <strong>Add family</strong> above to start your list.
         </p>
       )}
 
-      <section>
-        <h2 className="section-title">
-          <MapPin size={17} weight="fill" /> Cities
-        </h2>
+      <section className="section">
+        <div className="section-head">
+          <h2 className="section-title">Cities</h2>
+          <span className="section-note">tap one for the full list</span>
+        </div>
         {Object.keys(byCity).length === 0 ? (
           <p className="empty-hint">Cities appear here automatically as you add families.</p>
         ) : (
@@ -160,41 +152,37 @@ export default function Dashboard({ families, onDrillDown }) {
                   className="city-card"
                   onClick={() => onDrillDown({ city })}
                 >
-                  <div className="city-card-head">
-                    <MapPin size={16} weight="fill" />
-                    <h3>{city}</h3>
-                  </div>
-                  <p>
-                    <strong>{s.families}</strong> families, <strong>{s.members}</strong>{' '}
-                    guests
-                  </p>
-                  <p className="city-cards-line">
-                    {s.delivered}/{s.families} cards delivered
-                  </p>
-                  <div className="progress">
-                    <div
+                  <span className="city-name">{city}</span>
+                  <span className="city-meta">
+                    {plural(s.families, 'family', 'families')} · {plural(s.members, 'guest')}
+                  </span>
+                  <span className="progress">
+                    <span
                       className="progress-fill"
                       style={{ width: `${(s.delivered / s.families) * 100}%` }}
                     />
-                  </div>
+                  </span>
+                  <span className="city-note">
+                    {s.delivered} of {s.families} delivered
+                  </span>
                 </button>
               ))}
           </div>
         )}
       </section>
 
-      <section>
-        <h2 className="section-title">
-          <Tag size={16} weight="fill" /> Tags
-        </h2>
-        <p className="section-hint">Tap a tag to see who's attending. Numbers are guests, not families.</p>
+      <section className="section">
+        <div className="section-head">
+          <h2 className="section-title">Tags</h2>
+          <span className="section-note">guests, not families</span>
+        </div>
         <div className="tag-cloud">
           {Object.entries(byTag)
             .sort((a, b) => b[1] - a[1])
             .map(([tag, count]) => (
               <button
                 key={tag}
-                className="tag-chip"
+                className="tag-chip tag-chip-stat"
                 onClick={() => onDrillDown({ tag })}
               >
                 {tag} <span className="tag-count">{count}</span>

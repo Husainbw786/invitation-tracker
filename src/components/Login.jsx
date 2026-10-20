@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Heart } from '@phosphor-icons/react'
 import { login } from '../lib/auth.js'
 import InstallButton from './InstallButton.jsx'
 
@@ -25,15 +24,25 @@ export default function Login({ onLogin }) {
   return (
     <div className="login-page">
       <form className="login-card" onSubmit={submit}>
-        <span className="login-photo">
-          <img src="/couple-sticker.jpeg" alt="Husain & Zainab" />
-        </span>
+        <div className="login-photos">
+          <figure className="polaroid polaroid-left">
+            <img src="/couple-painting.jpeg" alt="Painted portrait of Husain and Zainab" />
+            <figcaption>Husain + Zainab</figcaption>
+            <span className="tape" aria-hidden="true" />
+          </figure>
+          <figure className="polaroid polaroid-right">
+            <img src="/couple-art2.jpeg" alt="Watercolour of Husain and Zainab" />
+            <figcaption>our story</figcaption>
+            <span className="tape tape-pink" aria-hidden="true" />
+          </figure>
+        </div>
+
         <h1 className="login-title">
-          Husain
-          <Heart className="brand-heart i" size={26} weight="fill" />
-          Zainab
+          <span>Husain</span>
+          <span className="amp">&amp;</span>
+          <span>Zainab</span>
         </h1>
-        <p className="login-sub">Wedding invitation manager</p>
+        <p className="login-sub">our wedding guest book</p>
 
         <label className="field">
           <span>Email</span>
@@ -62,11 +71,11 @@ export default function Login({ onLogin }) {
           {busy ? 'Logging in...' : 'Login'}
         </button>
 
-        <InstallButton className="btn login-install" />
+        <InstallButton className="btn btn-dashed login-install" />
 
         <p className="login-hint">
-          Husain's side and Zainab's side each have their own login. Every side sees
-          only its own invitation list.
+          Husain's side and Zainab's side each have their own login, and each sees only its
+          own list.
         </p>
       </form>
     </div>

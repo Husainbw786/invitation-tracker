@@ -25,8 +25,14 @@ export default function InstallButton({ className, labelClassName }) {
   }
 
   return (
-    <button type="button" className={className} onClick={handleClick} title="Install as an app">
-      <DownloadSimple size={16} weight="bold" />
+    <button
+      type="button"
+      className={className}
+      onClick={handleClick}
+      title="Install as an app"
+      aria-label="Install app"
+    >
+      <DownloadSimple size={18} />
       <span className={labelClassName}>Install App</span>
     </button>
   )
