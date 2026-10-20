@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, SignOut, Heart } from '@phosphor-icons/react'
+import { Plus, SignOut } from '@phosphor-icons/react'
 import { subscribe } from './lib/store.js'
 import { logout, watchSession } from './lib/auth.js'
 import Dashboard from './components/Dashboard.jsx'
@@ -67,43 +67,46 @@ export default function App() {
       <header className="topbar">
         <div className="topbar-inner">
           <div className="brand">
-            <span className="brand-photo-wrap">
-              <img src="/couple-art1.jpeg" alt="Couple" className="brand-photo" />
+            <span className="polaroid polaroid-mini" aria-hidden="true">
+              <img src="/couple-art2.jpeg" alt="" />
             </span>
-            <div>
-              <h1 className="brand-names">
-                Husain
-                <Heart className="brand-heart i" size={20} weight="fill" />
-                Zainab
-              </h1>
-              <p>{session.label}</p>
+            <div className="brand-text">
+              <h1 className="brand-names">Husain &amp; Zainab</h1>
+              <p className="brand-side">{session.label}</p>
             </div>
           </div>
           <div className="topbar-actions">
-            <button className="btn btn-primary" onClick={() => setEditing('new')}>
-              <Plus size={17} weight="bold" /> Add Family
-            </button>
-            <InstallButton className="logout-btn" labelClassName="logout-text" />
-            <button className="logout-btn" onClick={handleLogout} title="Logout">
-              <SignOut size={16} />
-              <span className="logout-text">Logout</span>
+            <InstallButton className="icon-btn" labelClassName="icon-btn-label" />
+            <button className="icon-btn" onClick={handleLogout} title="Logout" aria-label="Logout">
+              <SignOut size={18} />
+              <span className="icon-btn-label">Logout</span>
             </button>
           </div>
         </div>
-        <nav className="tabs">
-          <button
-            className={tab === 'dashboard' ? 'tab active' : 'tab'}
-            onClick={() => setTab('dashboard')}
-          >
-            Dashboard
+        <div className="topbar-inner">
+          <nav className="tabs">
+            <button
+              className={tab === 'dashboard' ? 'tab active' : 'tab'}
+              aria-current={tab === 'dashboard' ? 'page' : undefined}
+              onClick={() => setTab('dashboard')}
+            >
+              Dashboard
+            </button>
+            <button
+              className={tab === 'list' ? 'tab active' : 'tab'}
+              aria-current={tab === 'list' ? 'page' : undefined}
+              onClick={() => setTab('list')}
+            >
+              Families
+            </button>
+          </nav>
+          <button className="btn btn-primary btn-add" onClick={() => setEditing('new')}>
+            <Plus size={16} weight="bold" />
+            <span>
+              Add<span className="btn-add-more"> family</span>
+            </span>
           </button>
-          <button
-            className={tab === 'list' ? 'tab active' : 'tab'}
-            onClick={() => setTab('list')}
-          >
-            Families
-          </button>
-        </nav>
+        </div>
       </header>
 
       <main className="content">
