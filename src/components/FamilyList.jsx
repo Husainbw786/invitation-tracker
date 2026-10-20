@@ -26,6 +26,8 @@ import {
   CARD_STATUS_LABELS,
 } from '../lib/store.js'
 
+const STATUS_FILTER_LABELS = { ...CARD_STATUS_LABELS, 'not-delivered': 'Not delivered yet' }
+
 function plural(n, one, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`
 }
@@ -187,45 +189,53 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
           />
         </label>
         <div className="filter-row">
+          {/* Each pill shows the chosen value; the real <select> sits invisibly on
+              top, so the pill is only as wide as its text, not its longest option. */}
           <span className={filters.city ? 'select-pill active' : 'select-pill'}>
+            <span className="select-pill-text">{filters.city || 'City'}</span>
+            <CaretDown className="i" size={13} weight="bold" />
             <select
               aria-label="Filter by city"
               value={filters.city || ''}
               onChange={(e) => set({ city: e.target.value || null })}
             >
-              <option value="">City</option>
+              <option value="">All cities</option>
               {cities.map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
-            <CaretDown className="i" size={13} weight="bold" />
           </span>
           <span className={filters.tag ? 'select-pill active' : 'select-pill'}>
+            <span className="select-pill-text">{filters.tag || 'Tag'}</span>
+            <CaretDown className="i" size={13} weight="bold" />
             <select
               aria-label="Filter by tag"
               value={filters.tag || ''}
               onChange={(e) => set({ tag: e.target.value || null })}
             >
-              <option value="">Tag</option>
+              <option value="">All tags</option>
               {tags.map((t) => (
                 <option key={t}>{t}</option>
               ))}
             </select>
-            <CaretDown className="i" size={13} weight="bold" />
           </span>
           <span className={filters.cardStatus ? 'select-pill active' : 'select-pill'}>
+            <span className="select-pill-text">
+              {STATUS_FILTER_LABELS[filters.cardStatus] || 'Status'}
+            </span>
+            <CaretDown className="i" size={13} weight="bold" />
             <select
               aria-label="Filter by card status"
               value={filters.cardStatus || ''}
               onChange={(e) => set({ cardStatus: e.target.value || null })}
             >
-              <option value="">Status</option>
-              <option value="pending">Pending</option>
-              <option value="written">Card Written</option>
-              <option value="delivered">Delivered</option>
-              <option value="not-delivered">Not delivered yet</option>
+              <option value="">Any card status</option>
+              {Object.entries(STATUS_FILTER_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </select>
-            <CaretDown className="i" size={13} weight="bold" />
           </span>
           <label className={filters.gift ? 'chip-toggle on' : 'chip-toggle'}>
             <input

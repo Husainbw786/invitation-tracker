@@ -430,7 +430,7 @@ a {
 .content {
   flex: 1;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1032px; /* 1000px of content plus padding, lined up with the header */
   margin: 0 auto;
   padding: 16px 16px 72px;
 }
@@ -477,6 +477,8 @@ a {
 /* ---------- Hero ---------- */
 .hero {
   position: relative;
+  display: flex;
+  align-items: center;
   background: var(--card);
   border: 1.5px solid var(--line);
   border-radius: 20px;
@@ -485,6 +487,7 @@ a {
 }
 
 .hero-text {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -807,8 +810,7 @@ button.stat-card:hover {
 .field > textarea:focus,
 .inline-add input:focus,
 .count-box input:focus,
-.tag-count-row input:focus,
-.select-pill select:focus-visible {
+.tag-count-row input:focus {
   outline: 2px solid var(--denim);
   outline-offset: 1px;
 }
@@ -819,48 +821,48 @@ button.stat-card:hover {
   gap: 8px;
 }
 
+/* Filter dropdown: a pill showing the chosen value, with the real <select>
+   laid invisibly over it so the pill is only as wide as its text */
 .select-pill {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-}
-
-.select-pill select {
-  appearance: none;
-  -webkit-appearance: none;
   height: 40px;
   max-width: 100%;
-  padding: 0 30px 0 13px;
+  padding: 0 12px 0 13px;
   border: 1.5px solid var(--line-strong);
   border-radius: var(--r-pill);
   background: var(--card);
   color: var(--ink);
   font-size: 13px;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.select-pill-text {
+  overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-pill select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  font-size: 16px; /* stops iOS zooming in when it opens */
   cursor: pointer;
 }
 
-.select-pill select option {
-  background: var(--card);
-  color: var(--ink);
+.select-pill:has(select:focus-visible) {
+  outline: 2px solid var(--denim);
+  outline-offset: 2px;
 }
 
-.select-pill .i {
-  position: absolute;
-  right: 12px;
-  color: var(--ink);
-  pointer-events: none;
-}
-
-.select-pill.active select {
+.select-pill.active {
   background: var(--denim);
   border-color: var(--denim);
-  color: #fff;
-}
-
-.select-pill.active .i {
   color: #fff;
 }
 
@@ -1317,11 +1319,6 @@ button.stat-card:hover {
   text-align: center;
 }
 
-.section-hint {
-  font-size: 12.5px;
-  color: var(--muted);
-}
-
 /* Men / women / children split inputs */
 .count-split {
   display: grid;
@@ -1442,8 +1439,10 @@ button.stat-card:hover {
   margin: 0 auto;
 }
 
+/* On top, so the right photo never covers this one's caption */
 .login-photos .polaroid-left {
   position: absolute;
+  z-index: 1;
   left: 14px;
   top: 40px;
   transform: rotate(-7deg);
@@ -1475,6 +1474,7 @@ button.stat-card:hover {
 }
 
 .login-title .amp {
+  padding-right: 4px; /* Caveat's "&" has almost no right-side spacing */
   font-family: var(--font-hand);
   font-weight: 700;
   font-size: 46px;
