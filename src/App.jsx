@@ -62,9 +62,12 @@ export default function App() {
     setFilters(EMPTY_FILTERS)
   }
 
+  // While the family form is open, the page behind it can't be tabbed into.
+  const behindModal = editing ? { inert: '' } : {}
+
   return (
     <div className="app">
-      <header className="topbar">
+      <header className="topbar" {...behindModal}>
         <div className="topbar-inner">
           <div className="brand">
             <span className="polaroid polaroid-mini" aria-hidden="true">
@@ -109,7 +112,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="content">
+      <main className="content" {...behindModal}>
         {tab === 'dashboard' ? (
           <Dashboard families={families} onDrillDown={openListWithFilter} />
         ) : (

@@ -95,7 +95,7 @@ function printChecklist(families) {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(
       ([city, list]) => `
-      <h2>${esc(city)} <span class="count">${list.length} families</span></h2>
+      <h2>${esc(city)} <span class="count">${plural(list.length, 'family', 'families')}</span></h2>
       <table>
         <tr><th></th><th>Family</th><th>Guests</th><th>M</th><th>W</th><th>C</th><th>Phone</th><th>Gift</th><th>Card status</th></tr>
         ${list
@@ -183,7 +183,7 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
             type="search"
             className="search-input"
             aria-label="Search families"
-            placeholder="Search family, member, city or phone"
+            placeholder="Search name, city or phone"
             value={filters.search}
             onChange={(e) => set({ search: e.target.value })}
           />
@@ -350,23 +350,26 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                     <p className="detail-breakdown">
                       {breakdown.untyped ? (
                         <span className="bd-item">
-                          <Users size={14} /> {breakdown.total} guests (not split)
+                          <Users size={14} /> {plural(breakdown.total, 'guest')} (not split)
                         </span>
                       ) : (
                         <>
                           {breakdown.male > 0 && (
                             <span className="bd-item">
-                              <GenderMale size={14} weight="bold" /> {breakdown.male} men
+                              <GenderMale size={14} weight="bold" />{' '}
+                              {plural(breakdown.male, 'man', 'men')}
                             </span>
                           )}
                           {breakdown.female > 0 && (
                             <span className="bd-item">
-                              <GenderFemale size={14} weight="bold" /> {breakdown.female} women
+                              <GenderFemale size={14} weight="bold" />{' '}
+                              {plural(breakdown.female, 'woman', 'women')}
                             </span>
                           )}
                           {breakdown.child > 0 && (
                             <span className="bd-item">
-                              <Baby size={14} weight="bold" /> {breakdown.child} children
+                              <Baby size={14} weight="bold" />{' '}
+                              {plural(breakdown.child, 'child', 'children')}
                             </span>
                           )}
                         </>

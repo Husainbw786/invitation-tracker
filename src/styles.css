@@ -23,7 +23,7 @@
   --ink-2: #554a43; /* body */
   --muted: #6a5e55; /* meta, >= 4.5:1 on paper */
   --tab-idle: #5e534b;
-  --placeholder: #8f8378;
+  --placeholder: #756a60; /* >= 4.5:1 on cream */
   --line: #e3d8c8;
   --line-strong: #d8cbb8;
   --line-open: #d2c3ac;
@@ -68,6 +68,10 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html {
+  scroll-padding-top: 150px; /* keeps keyboard focus clear of the sticky header */
 }
 
 body {
@@ -144,14 +148,12 @@ a {
   animation: rise 0.5s var(--ease) both;
 }
 
+/* !important so it beats the animations declared further down the file */
 @media (prefers-reduced-motion: reduce) {
-  .rise,
-  .login-card,
-  .modal,
-  .modal-backdrop {
-    animation: none;
-  }
-  * {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
     transition: none !important;
   }
 }
@@ -414,7 +416,7 @@ a {
   color: var(--denim);
   font-size: 13px;
   font-weight: 600;
-  min-height: 32px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -658,6 +660,7 @@ button.stat-card:hover {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  container-type: inline-size; /* lets long city names shrink to fit */
   transition: transform 0.18s var(--ease), border-color 0.2s var(--ease);
 }
 
@@ -669,7 +672,7 @@ button.stat-card:hover {
 .city-name {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 21px;
+  font-size: min(21px, 14cqi);
   line-height: 1.05;
   overflow-wrap: anywhere;
 }
@@ -741,9 +744,14 @@ button.stat-card:hover {
   color: #fff;
 }
 
+.modal .tag-cloud .tag-chip {
+  min-height: 44px;
+}
+
 .tag-chip.tiny {
-  padding: 3px 10px;
-  font-size: 12px;
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 12.5px;
 }
 
 /* Read-only chip inside an opened family card */
@@ -973,6 +981,12 @@ button.stat-card:hover {
   text-align: left;
 }
 
+/* Inset, so the card's overflow: hidden doesn't clip the ring */
+.family-head:focus-visible {
+  outline-offset: -4px;
+  border-radius: 16px;
+}
+
 .family-title {
   display: flex;
   flex-direction: column;
@@ -1042,7 +1056,7 @@ button.stat-card:hover {
 }
 
 .detail-phone {
-  min-height: 32px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1258,8 +1272,8 @@ button.stat-card:hover {
 }
 
 .member-pill-head button {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   border: none;
   border-radius: var(--r-pill);
@@ -1273,7 +1287,7 @@ button.stat-card:hover {
 .member-tag-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 6px;
 }
 
 /* Count-mode per-tag attendance inputs */
@@ -1595,6 +1609,29 @@ button.stat-card:hover {
     padding: 0 13px;
   }
 
+  /* Keep the four filters, and a card's two quick actions, on one row */
+  .filter-row {
+    gap: 6px;
+  }
+
+  .select-pill {
+    padding: 0 8px 0 10px;
+    gap: 4px;
+  }
+
+  .chip-toggle {
+    padding: 0 10px;
+    gap: 4px;
+  }
+
+  .quick-actions {
+    gap: 6px;
+  }
+
+  .quick-actions .btn-small {
+    padding: 0 10px;
+  }
+
   .hero-text {
     max-width: calc(100% - 112px);
   }
@@ -1634,5 +1671,26 @@ button.stat-card:hover {
 
   .stat-value {
     font-size: 34px;
+  }
+
+  /* Spread the login polaroids so the left one doesn't hide the right photo */
+  .login-photos .polaroid-left {
+    left: 0;
+  }
+
+  .login-photos .polaroid-right {
+    right: 0;
+  }
+}
+
+/* iPhone Safari zooms into any input under 16px when it gets focus */
+@media (pointer: coarse) {
+  .field > input,
+  .field > select,
+  .field > textarea,
+  .inline-add input,
+  .tag-count-row input,
+  .search-input {
+    font-size: 16px;
   }
 }

@@ -65,7 +65,11 @@ export default function Login({ onLogin }) {
           />
         </label>
 
-        {error && <p className="form-error">{error}</p>}
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
 
         <button type="submit" className="btn btn-primary login-btn" disabled={busy}>
           {busy ? 'Logging in...' : 'Login'}

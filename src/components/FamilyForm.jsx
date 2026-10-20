@@ -48,6 +48,12 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   // Where the last mouse press started, so dragging a text selection out of
   // an input and releasing on the backdrop doesn't close the form.
   const pressedOnBackdrop = useRef(false)
+  const errorRef = useRef(null)
+
+  // Saving with the keyboard's Go key can leave the error below the fold.
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [error])
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -160,9 +166,15 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
         pressedOnBackdrop.current = false
       }}
     >
-      <form className="modal" onSubmit={save}>
+      <form
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="family-form-title"
+        onSubmit={save}
+      >
         <div className="modal-head">
-          <h2>{family ? 'Edit Family' : 'Add Family'}</h2>
+          <h2 id="family-form-title">{family ? 'Edit Family' : 'Add Family'}</h2>
           <button type="button" className="close-btn" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
@@ -211,6 +223,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
                 type="button"
                 key={t}
                 className={selectedTags.includes(t) ? 'tag-chip selected' : 'tag-chip'}
+                aria-pressed={selectedTags.includes(t)}
                 onClick={() => toggleTag(t)}
               >
                 {t}
@@ -223,6 +236,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
                   type="button"
                   key={t}
                   className="tag-chip selected"
+                  aria-pressed="true"
                   onClick={() => toggleTag(t)}
                 >
                   {t}
@@ -280,6 +294,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
                             className={
                               effectiveTags.includes(t) ? 'tag-chip tiny selected' : 'tag-chip tiny'
                             }
+                            aria-pressed={effectiveTags.includes(t)}
                             onClick={() => toggleMemberTag(m, t)}
                           >
                             {t}
@@ -396,8 +411,8 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
         </label>
 
         {error && (
-          <p className="form-error">
-            <Warning size={16} weight="fill" /> {error}
+          <p className="form-error" role="alert" ref={errorRef}>
+            <Warning size={16} weight="fill" aria-hidden="true" /> {error}
           </p>
         )}
 

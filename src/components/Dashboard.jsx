@@ -9,9 +9,10 @@ function plural(n, one, many = `${one}s`) {
 function deliveryHeadline(delivered, total) {
   const left = total - delivered
   if (total === 0) return 'Your list starts here'
-  if (left === 0) return `All ${plural(total, 'card')} delivered`
+  if (left === 0) return total === 1 ? 'Your 1 card is delivered' : `All ${total} cards delivered`
   if (delivered === 0) return `${plural(left, 'card')} to go`
-  return `${plural(delivered, 'card')} out, ${left} to go`
+  // No-break space keeps "cards out," together, so the line breaks at the comma.
+  return `${plural(delivered, 'card')} out, ${left} to go`
 }
 
 export default function Dashboard({ families, onDrillDown }) {
@@ -66,7 +67,7 @@ export default function Dashboard({ families, onDrillDown }) {
             <div
               className="hero-progress"
               role="img"
-              aria-label={`${delivered} of ${totalFamilies} cards delivered`}
+              aria-label={`${delivered} of ${plural(totalFamilies, 'card')} delivered`}
             >
               {delivered > 0 && <span className="seg seg-done" style={{ flexGrow: delivered }} />}
               {pendingCards > 0 && <span className="seg" style={{ flexGrow: pendingCards }} />}
@@ -100,7 +101,7 @@ export default function Dashboard({ families, onDrillDown }) {
           <span className="stat-value">
             {delivered} <span className="stat-of">of {totalFamilies}</span>
           </span>
-          <span className="stat-label">Cards delivered</span>
+          <span className="stat-label">Cards delivered · {pendingCards} left</span>
         </button>
       </section>
 
