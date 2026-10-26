@@ -1245,6 +1245,35 @@ button.stat-card:hover {
   gap: 6px;
 }
 
+/* Outcome of a contact pick: green when something was filled in, red when
+   nothing came back. Big enough to notice on a phone. */
+.field-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.field-note > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.field-note.ok {
+  color: var(--stamp-delivered);
+}
+
+.field-note.error {
+  color: var(--danger);
+}
+
+.field-note .link-btn {
+  font-size: inherit;
+  font-weight: 700;
+}
+
 .member-pills {
   list-style: none;
   display: flex;

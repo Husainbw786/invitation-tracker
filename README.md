@@ -60,12 +60,20 @@ click **Publish**.
 ## Phone contacts (Android)
 
 The **Contacts** buttons in the Add Family form use the browser's Contact
-Picker API. Tapping one opens Android's own contact picker:
+Picker API. Tapping one opens a contact picker:
 
 1. The first time, the browser asks for the phone's **Contacts** permission.
-2. The picker lists the phone's contacts; the user ticks who they want.
+2. The picker lists the phone's contacts; the user ticks who they want and
+   taps **Done**. On newer Android versions Chrome opens the phone's own
+   contacts app first and then shows a short confirmation sheet of its own
+   (name and number chips); tap **Done** there as well.
 3. Only the ticked contacts reach the app. The rest of the address book is
    never read, and nothing is uploaded until the family is saved.
+
+The picked contact's name and first number are filled into the form straight
+away and a green line under the phone box confirms what was taken (with an
+**Undo name** link when a name that was already typed got replaced). If nothing
+came back, a red line says so and what to try.
 
 The picker reads the phone's shared contact store, which every contacts app
 writes to (Google Contacts, Samsung Contacts, Mi Contacts, SIM contacts,
@@ -84,6 +92,9 @@ Requirements:
 - If the permission was denied earlier, the picker returns nothing. Allow
   **Contacts** for the browser under Android Settings › Apps › Chrome ›
   Permissions and tap the button again (the form says this too).
+- To see exactly what the phone handed over, plug it in, open
+  `chrome://inspect` on a computer, and look for "Contact picker returned" in
+  the console.
 
 The code is in [`src/lib/contacts.js`](src/lib/contacts.js).
 

@@ -8,6 +8,7 @@ import {
   GenderFemale,
   Baby,
   AddressBook,
+  CheckCircle,
 } from '@phosphor-icons/react'
 import { addFamily, updateFamily, CARD_STATUS_LABELS } from '../lib/store.js'
 import { canPickContacts, isAndroid, pickContacts } from '../lib/contacts.js'
@@ -15,11 +16,51 @@ import { canPickContacts, isAndroid, pickContacts } from '../lib/contacts.js'
 // Shown under the field when picking from phone contacts produced nothing.
 const CONTACT_MESSAGES = {
   unsupported: 'Picking from contacts needs Chrome or Samsung Internet on Android.',
-  busy: 'The contact picker is already open.',
-  failed: 'Could not open your contacts. Please try again.',
+  busy: 'The contact picker is already open. Finish there first.',
+  failed: 'Could not read your contacts.',
   none:
-    'No contact was chosen. If your contacts did not show up, allow Contacts for your ' +
-    'browser in the phone Settings (Apps › Chrome › Permissions) and try again.',
+    'Nothing came back from the contact picker. Tick the contact, then tap Done. ' +
+    'If a second sheet with name and number chips appears, tap Done there too. ' +
+    'If your contacts never show up, allow Contacts for your browser in the phone ' +
+    'Settings (Apps › Chrome › Permissions).',
+  blank:
+    'The picked contact came back without a name or number. In the picker, keep ' +
+    'Names and Phone numbers ticked and try again.',
+}
+
+function failNote(code, detail) {
+  const text = CONTACT_MESSAGES[code] || CONTACT_MESSAGES.failed
+  return { kind: 'error', text: detail ? `${text} (${detail})` : text }
+}
+
+// Outcome of a contact pick, under the field it belongs to: green for a
+// success (with an undo when a typed name was replaced), red for a failure.
+function ContactNote({ note, onUndo }) {
+  if (!note) return null
+  if (note.kind === 'error') {
+    return (
+      <p className="field-note error" role="alert">
+        <Warning size={16} weight="fill" />
+        <span>{note.text}</span>
+      </p>
+    )
+  }
+  return (
+    <p className="field-note ok" role="status">
+      <CheckCircle size={16} weight="fill" />
+      <span>
+        {note.text}
+        {note.undoName && (
+          <>
+            {' '}
+            <button type="button" className="link-btn" onClick={onUndo}>
+              Undo name
+            </button>
+          </>
+        )}
+      </span>
+    </p>
+  )
 }
 
 // Whole, non-negative number from an input value, or null when blank/invalid.
@@ -60,9 +101,8 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   // Picking from phone contacts (Android). `contactNumbers` keeps every number
   // of the last picked contact so the user can switch when there are several.
   const [contactNumbers, setContactNumbers] = useState([])
-  const [phoneHint, setPhoneHint] = useState('')
-  const [memberHint, setMemberHint] = useState('')
-  const [picking, setPicking] = useState(false)
+  const [phoneNote, setPhoneNote] = useState(null)
+  const [memberNote, setMemberNote] = useState(null)
   // The button is shown wherever the picker exists, and on every Android
   // browser so a user without it is told to use Chrome instead of seeing
   // nothing at all.
@@ -84,41 +124,57 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
     setMemberInput('')
   }
 
-  // One contact for the head of the family: fills the phone, and the family
-  // name too unless something is already typed there (editing an existing
-  // family, or a name written the family's own way).
+  // One contact for the head of the family: its name and first number go
+  // straight into the form (the tap on Contacts is the user's say-so), with
+  // an undo when a name that was already typed got replaced.
+  // The buttons are never disabled while the picker is open: if the browser
+  // ever fails to answer, the user can simply tap again, and a second picker
+  // on top of the first is refused by the browser itself (the "busy" note).
   async function pickHeadOfFamily() {
-    if (picking) return
-    setPicking(true)
-    setPhoneHint('')
-    const { contacts, error: pickError } = await pickContacts()
-    setPicking(false)
-    if (pickError) return setPhoneHint(CONTACT_MESSAGES[pickError])
+    setPhoneNote(null)
+    const { contacts, error: pickError, detail } = await pickContacts()
+    if (pickError) return setPhoneNote(failNote(pickError, detail))
     const c = contacts[0]
-    if (!c) return setPhoneHint(CONTACT_MESSAGES.none)
-    const who = c.name || 'That contact'
-    if (c.name && !name.trim()) setName(c.name)
-    else if (c.name) setPhoneHint(`Number taken from ${c.name}. The family name you typed was kept.`)
+    if (!c) return setPhoneNote({ kind: 'error', text: CONTACT_MESSAGES.none })
+    if (!c.name && !c.phones.length) {
+      return setPhoneNote({ kind: 'error', text: CONTACT_MESSAGES.blank })
+    }
+    const previousName = name.trim()
+    if (c.name) setName(c.name)
     setContactNumbers(c.phones)
     if (c.phones.length) setPhone(c.phones[0])
-    else setPhoneHint(`${who} has no phone number saved.`)
+    let text = `Taken from contacts: ${[c.name, c.phones[0]].filter(Boolean).join(', ')}.`
+    if (!c.phones.length) text += ' This contact has no phone number saved.'
+    if (!c.name) text += ' This contact has no name saved.'
+    const undoName = previousName && c.name && previousName !== c.name ? previousName : ''
+    setPhoneNote({ kind: 'ok', text, undoName })
+  }
+
+  function undoContactName() {
+    setName(phoneNote?.undoName || '')
+    setPhoneNote((n) => (n ? { ...n, undoName: '' } : n))
   }
 
   // Several contacts at once become named members. A person already on the
   // list is not added twice, so re-picking is harmless.
   async function pickMembers() {
-    if (picking) return
-    setPicking(true)
-    setMemberHint('')
-    const { contacts, error: pickError } = await pickContacts({ multiple: true })
-    setPicking(false)
-    if (pickError) return setMemberHint(CONTACT_MESSAGES[pickError])
-    const names = contacts.map((c) => c.name).filter(Boolean)
-    if (!names.length) return setMemberHint(CONTACT_MESSAGES.none)
-    setMembers((prev) => {
-      const next = [...prev]
-      for (const n of names) if (!next.includes(n)) next.push(n)
-      return next
+    setMemberNote(null)
+    const { contacts, error: pickError, detail } = await pickContacts({ multiple: true })
+    if (pickError) return setMemberNote(failNote(pickError, detail))
+    const names = [...new Set(contacts.map((c) => c.name).filter(Boolean))]
+    if (!names.length) {
+      return setMemberNote({
+        kind: 'error',
+        text: contacts.length ? CONTACT_MESSAGES.blank : CONTACT_MESSAGES.none,
+      })
+    }
+    const fresh = names.filter((n) => !members.includes(n))
+    if (fresh.length) setMembers((prev) => [...prev, ...fresh.filter((n) => !prev.includes(n))])
+    setMemberNote({
+      kind: 'ok',
+      text: fresh.length
+        ? `Added from contacts: ${fresh.join(', ')}.`
+        : 'Everyone you picked is already on the list.',
     })
   }
 
@@ -268,7 +324,6 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
                 type="button"
                 className="btn btn-small"
                 onClick={pickHeadOfFamily}
-                disabled={picking}
                 title="Pick from phone contacts"
                 aria-label="Pick from phone contacts"
               >
@@ -296,7 +351,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
               </div>
             </>
           )}
-          {phoneHint && <p className="field-hint">{phoneHint}</p>}
+          <ContactNote note={phoneNote} onUndo={undoContactName} />
         </div>
 
         <div className="field">
@@ -355,7 +410,6 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
                 type="button"
                 className="btn btn-small"
                 onClick={pickMembers}
-                disabled={picking}
                 title="Pick members from phone contacts"
                 aria-label="Pick members from phone contacts"
               >
@@ -364,7 +418,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
               </button>
             )}
           </div>
-          {memberHint && <p className="field-hint">{memberHint}</p>}
+          <ContactNote note={memberNote} />
           {members.length > 0 && (
             <ul className="member-pills">
               {members.map((m, i) => {
