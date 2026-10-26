@@ -6,6 +6,36 @@
 
 const CACHE = 'invites-v1'
 
+// A contact shared into the app from the phone's Contacts app arrives here as
+// a POST from the manifest's share_target. Keep the file(s) in the cache and
+// send the app to its start page, which reads them (see src/lib/share.js).
+const SHARE_PATH = '/share-contact'
+const SHARE_KEY = '/__shared-contact'
+
+async function receiveSharedContact(request) {
+  try {
+    const form = await request.formData()
+    const files = []
+    for (const file of form.getAll('contact')) {
+      if (file && typeof file.text === 'function') files.push(await file.text())
+    }
+    const payload = {
+      files,
+      title: String(form.get('title') || ''),
+      text: String(form.get('text') || ''),
+      at: Date.now(),
+    }
+    const cache = await caches.open(CACHE)
+    await cache.put(
+      SHARE_KEY,
+      new Response(JSON.stringify(payload), { headers: { 'Content-Type': 'application/json' } })
+    )
+  } catch (e) {
+    console.error('Could not read the shared contact', e)
+  }
+  return Response.redirect(new URL('/?shared-contact=1', self.location.origin).href, 303)
+}
+
 self.addEventListener('install', () => self.skipWaiting())
 
 self.addEventListener('activate', (event) => {
@@ -20,6 +50,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
+  if (request.method === 'POST' && url.origin === self.location.origin && url.pathname === SHARE_PATH) {
+    event.respondWith(receiveSharedContact(request))
+    return
+  }
   if (request.method !== 'GET' || url.origin !== self.location.origin) return
 
   // Pages: always try the network first so a new deploy shows up right away;

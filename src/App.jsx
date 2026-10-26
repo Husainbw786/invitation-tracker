@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Plus, SignOut } from '@phosphor-icons/react'
 import { subscribe } from './lib/store.js'
 import { logout, watchSession } from './lib/auth.js'
+import { takeSharedContact } from './lib/share.js'
 import Dashboard from './components/Dashboard.jsx'
 import FamilyList from './components/FamilyList.jsx'
 import FamilyForm from './components/FamilyForm.jsx'
@@ -17,8 +18,21 @@ export default function App() {
   const [tab, setTab] = useState('dashboard') // 'dashboard' | 'list'
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [editing, setEditing] = useState(null) // null | 'new' | family object
+  // A contact shared into the app from the phone's Contacts app: held until
+  // the user is logged in, then opened as a pre-filled new family.
+  const [pendingShare, setPendingShare] = useState(null)
+  const [draft, setDraft] = useState(null)
 
   useEffect(() => watchSession(setSession), [])
+  useEffect(() => {
+    takeSharedContact().then((contact) => contact && setPendingShare(contact))
+  }, [])
+  useEffect(() => {
+    if (!session || !pendingShare) return
+    setDraft(pendingShare)
+    setPendingShare(null)
+    setEditing('new')
+  }, [session, pendingShare])
 
   // Subscribe to just this side's guest list, so Husain's and Zainab's
   // families never load each other's data.
@@ -127,10 +141,14 @@ export default function App() {
       {editing && (
         <FamilyForm
           family={editing === 'new' ? null : editing}
+          initial={editing === 'new' ? draft : null}
           side={session.side}
           cities={cities}
           tags={tags}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            setEditing(null)
+            setDraft(null)
+          }}
         />
       )}
     </div>

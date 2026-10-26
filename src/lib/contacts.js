@@ -16,6 +16,8 @@
 // Android, on HTTPS (or localhost). Not available in Firefox on Android, on
 // desktop browsers, or on iPhone.
 
+import { phoneKey } from './vcard.js'
+
 export function canPickContacts() {
   return (
     typeof navigator !== 'undefined' &&
@@ -51,7 +53,7 @@ export function normalizeContact(contact) {
   const seen = new Set()
   for (const raw of asList(contact?.tel)) {
     const tel = asText(raw)
-    const key = tel.replace(/[^\d+]/g, '') // "98200 11223" and "98200-11223" are one number
+    const key = phoneKey(tel) // "+91 98200 11223" and "98200-11223" are one number
     if (!key || seen.has(key)) continue
     seen.add(key)
     phones.push(tel)
@@ -74,6 +76,16 @@ export function normalizeContact(contact) {
  */
 export async function pickContacts({ multiple = false } = {}) {
   if (!canPickContacts()) return { contacts: [], error: 'unsupported', detail: '' }
+  // Newer Chrome builds open the phone's own Contacts app for the pick, which
+  // sends this page to the background, and Chrome then cancels the pick as
+  // soon as that happens (its picker is torn down whenever the tab is
+  // hidden). An empty answer after the page was hidden is that case, and the
+  // form explains it and points to Share instead.
+  let wentHidden = false
+  const onVisibility = () => {
+    if (document.visibilityState === 'hidden') wentHidden = true
+  }
+  document.addEventListener('visibilitychange', onVisibility)
   let picked
   try {
     picked = await navigator.contacts.select(['name', 'tel'], { multiple })
@@ -81,15 +93,22 @@ export async function pickContacts({ multiple = false } = {}) {
     console.error('Contact picker failed', e)
     const detail = e?.message ? `${e.name || 'Error'}: ${e.message}` : String(e)
     const busy = e?.name === 'InvalidStateError' && /in use|already/i.test(e?.message || '')
-    return { contacts: [], error: busy ? 'busy' : 'failed', detail }
+    return { contacts: [], error: busy ? 'busy' : 'failed', detail, wentHidden }
+  } finally {
+    document.removeEventListener('visibilitychange', onVisibility)
   }
   // Left in on purpose: with the phone plugged into chrome://inspect this
   // shows exactly what the picker handed over.
   console.info('Contact picker returned', picked)
   try {
-    return { contacts: asList(picked).filter(Boolean).map(normalizeContact) }
+    return { contacts: asList(picked).filter(Boolean).map(normalizeContact), wentHidden }
   } catch (e) {
     console.error('Could not read the picked contacts', e, picked)
-    return { contacts: [], error: 'failed', detail: `Could not read the contact (${e?.message || e})` }
+    return {
+      contacts: [],
+      error: 'failed',
+      detail: `Could not read the contact (${e?.message || e})`,
+      wentHidden,
+    }
   }
 }
