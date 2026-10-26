@@ -7,8 +7,20 @@ import {
   GenderMale,
   GenderFemale,
   Baby,
+  AddressBook,
 } from '@phosphor-icons/react'
 import { addFamily, updateFamily, CARD_STATUS_LABELS } from '../lib/store.js'
+import { canPickContacts, isAndroid, pickContacts } from '../lib/contacts.js'
+
+// Shown under the field when picking from phone contacts produced nothing.
+const CONTACT_MESSAGES = {
+  unsupported: 'Picking from contacts needs Chrome or Samsung Internet on Android.',
+  busy: 'The contact picker is already open.',
+  failed: 'Could not open your contacts. Please try again.',
+  none:
+    'No contact was chosen. If your contacts did not show up, allow Contacts for your ' +
+    'browser in the phone Settings (Apps › Chrome › Permissions) and try again.',
+}
 
 // Whole, non-negative number from an input value, or null when blank/invalid.
 // The database columns are integers, so "2.5" or "-1" must never reach them.
@@ -45,6 +57,16 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   const [notes, setNotes] = useState(family?.notes || '')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  // Picking from phone contacts (Android). `contactNumbers` keeps every number
+  // of the last picked contact so the user can switch when there are several.
+  const [contactNumbers, setContactNumbers] = useState([])
+  const [phoneHint, setPhoneHint] = useState('')
+  const [memberHint, setMemberHint] = useState('')
+  const [picking, setPicking] = useState(false)
+  // The button is shown wherever the picker exists, and on every Android
+  // browser so a user without it is told to use Chrome instead of seeing
+  // nothing at all.
+  const showContactButtons = canPickContacts() || isAndroid()
   // Where the last mouse press started, so dragging a text selection out of
   // an input and releasing on the backdrop doesn't close the form.
   const pressedOnBackdrop = useRef(false)
@@ -60,6 +82,44 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
     if (!m) return
     setMembers((prev) => [...prev, m])
     setMemberInput('')
+  }
+
+  // One contact for the head of the family: fills the phone, and the family
+  // name too unless something is already typed there (editing an existing
+  // family, or a name written the family's own way).
+  async function pickHeadOfFamily() {
+    if (picking) return
+    setPicking(true)
+    setPhoneHint('')
+    const { contacts, error: pickError } = await pickContacts()
+    setPicking(false)
+    if (pickError) return setPhoneHint(CONTACT_MESSAGES[pickError])
+    const c = contacts[0]
+    if (!c) return setPhoneHint(CONTACT_MESSAGES.none)
+    const who = c.name || 'That contact'
+    if (c.name && !name.trim()) setName(c.name)
+    else if (c.name) setPhoneHint(`Number taken from ${c.name}. The family name you typed was kept.`)
+    setContactNumbers(c.phones)
+    if (c.phones.length) setPhone(c.phones[0])
+    else setPhoneHint(`${who} has no phone number saved.`)
+  }
+
+  // Several contacts at once become named members. A person already on the
+  // list is not added twice, so re-picking is harmless.
+  async function pickMembers() {
+    if (picking) return
+    setPicking(true)
+    setMemberHint('')
+    const { contacts, error: pickError } = await pickContacts({ multiple: true })
+    setPicking(false)
+    if (pickError) return setMemberHint(CONTACT_MESSAGES[pickError])
+    const names = contacts.map((c) => c.name).filter(Boolean)
+    if (!names.length) return setMemberHint(CONTACT_MESSAGES.none)
+    setMembers((prev) => {
+      const next = [...prev]
+      for (const n of names) if (!next.includes(n)) next.push(n)
+      return next
+    })
   }
 
   function removeMember(index, m) {
@@ -193,15 +253,51 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
           </datalist>
         </label>
 
-        <label className="field">
+        <div className="field">
           <span>Phone (optional)</span>
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="e.g. 98200 11223"
-            inputMode="tel"
-          />
-        </label>
+          <div className="inline-add">
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 98200 11223"
+              inputMode="tel"
+              aria-label="Phone"
+            />
+            {showContactButtons && (
+              <button
+                type="button"
+                className="btn btn-small"
+                onClick={pickHeadOfFamily}
+                disabled={picking}
+                title="Pick from phone contacts"
+                aria-label="Pick from phone contacts"
+              >
+                <AddressBook size={16} weight="bold" />
+                <span className="contacts-btn-label">Contacts</span>
+              </button>
+            )}
+          </div>
+          {contactNumbers.length > 1 && (
+            <>
+              <p className="field-hint">
+                This contact has {contactNumbers.length} numbers. Tap one to use it.
+              </p>
+              <div className="phone-choices">
+                {contactNumbers.map((n) => (
+                  <button
+                    type="button"
+                    key={n}
+                    className={phone === n ? 'tag-chip tiny selected' : 'tag-chip tiny'}
+                    onClick={() => setPhone(n)}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          {phoneHint && <p className="field-hint">{phoneHint}</p>}
+        </div>
 
         <div className="field">
           <span>Tags</span>
@@ -244,7 +340,7 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
 
         <div className="field">
           <span>Members (optional: add names, or just the counts below)</span>
-          <div className="inline-add">
+          <div className="inline-add member-add">
             <input
               value={memberInput}
               onChange={(e) => setMemberInput(e.target.value)}
@@ -254,7 +350,21 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
             <button type="button" className="btn btn-small" onClick={addMember}>
               <Plus size={14} weight="bold" /> Add
             </button>
+            {showContactButtons && (
+              <button
+                type="button"
+                className="btn btn-small"
+                onClick={pickMembers}
+                disabled={picking}
+                title="Pick members from phone contacts"
+                aria-label="Pick members from phone contacts"
+              >
+                <AddressBook size={16} weight="bold" />
+                <span className="contacts-btn-label">Contacts</span>
+              </button>
+            )}
           </div>
+          {memberHint && <p className="field-hint">{memberHint}</p>}
           {members.length > 0 && (
             <ul className="member-pills">
               {members.map((m, i) => {

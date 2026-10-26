@@ -1230,6 +1230,21 @@ button.stat-card:hover {
   flex-shrink: 0;
 }
 
+/* Note under a field, e.g. after picking from phone contacts */
+.field-hint {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* A picked contact with several numbers: tap one to use it */
+.phone-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .member-pills {
   list-style: none;
   display: flex;
@@ -1589,6 +1604,11 @@ button.stat-card:hover {
 @media (max-width: 380px) {
   .tab {
     padding: 0 12px;
+  }
+
+  /* Member row holds two buttons; keep room for the name box */
+  .member-add .contacts-btn-label {
+    display: none;
   }
 
   .btn-add {
