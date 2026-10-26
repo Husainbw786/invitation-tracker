@@ -94,6 +94,8 @@ npm run build
 ```
 
 Deploy the `dist/` folder to any static host (Vercel / Netlify / GitHub Pages).
+The live site is hosted on Vercel, which builds and deploys `main` automatically
+after every merge.
 
 ## Tech
 
