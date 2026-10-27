@@ -13,19 +13,40 @@ import {
 import { addFamily, updateFamily, CARD_STATUS_LABELS } from '../lib/store.js'
 import { canPickContacts, isAndroid, pickContacts } from '../lib/contacts.js'
 
+// The route that always works: share the person from the Contacts app.
+const SHARE_TIP =
+  'The sure way: open the person in your Contacts app, tap Share, and choose ' +
+  'Invitations. The form then opens with their name and number filled in.'
+
 // Shown under the field when picking from phone contacts produced nothing.
 const CONTACT_MESSAGES = {
-  unsupported: 'Picking from contacts needs Chrome or Samsung Internet on Android.',
+  unsupported: `Picking from contacts needs Chrome or Samsung Internet on Android. ${SHARE_TIP}`,
   busy: 'The contact picker is already open. Finish there first.',
   failed: 'Could not read your contacts.',
   none:
-    'Nothing came back from the contact picker. Tick the contact, then tap Done. ' +
-    'If a second sheet with name and number chips appears, tap Done there too. ' +
-    'If your contacts never show up, allow Contacts for your browser in the phone ' +
-    'Settings (Apps › Chrome › Permissions).',
+    'Nothing came back from the contact picker. Tick the contact, then tap Done ' +
+    '(and Done again if a second sheet with name and number chips appears). ' +
+    `If your contacts never show up, allow Contacts for Chrome in the phone Settings. ${SHARE_TIP}`,
+  hidden:
+    'Your phone opened its Contacts app for the pick, but Chrome dropped the pick ' +
+    'the moment this app went to the background (a Chrome bug on this Android ' +
+    `version), so the contact never arrived. ${SHARE_TIP}`,
   blank:
     'The picked contact came back without a name or number. In the picker, keep ' +
     'Names and Phone numbers ticked and try again.',
+}
+
+function emptyNote(wentHidden) {
+  return { kind: 'error', text: wentHidden ? CONTACT_MESSAGES.hidden : CONTACT_MESSAGES.none }
+}
+
+// Note for a form opened by a contact shared from the Contacts app.
+function sharedNote(initial) {
+  const taken = [initial.name, initial.phones?.[0]].filter(Boolean).join(', ')
+  let text = `Taken from the shared contact: ${taken}.`
+  if (!initial.phones?.length) text += ' It has no phone number saved.'
+  if (initial.members?.length) text += ` Members added: ${initial.members.join(', ')}.`
+  return { kind: 'ok', text, undoName: '' }
 }
 
 function failNote(code, detail) {
@@ -70,11 +91,15 @@ function toCount(value) {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
-export default function FamilyForm({ family, side, cities, tags, onClose }) {
-  const [name, setName] = useState(family?.name || '')
+// `initial` pre-fills a new family from a contact shared into the app
+// ({ name, phones, members }); `family` is an existing family being edited.
+export default function FamilyForm({ family, initial, side, cities, tags, onClose }) {
+  const [name, setName] = useState(family?.name || initial?.name || '')
   const [city, setCity] = useState(family?.city || '')
-  const [phone, setPhone] = useState(family?.phone || '')
-  const [members, setMembers] = useState(family?.members?.length ? [...family.members] : [])
+  const [phone, setPhone] = useState(family?.phone || initial?.phones?.[0] || '')
+  const [members, setMembers] = useState(
+    family?.members?.length ? [...family.members] : initial?.members?.length ? [...initial.members] : []
+  )
   const [memberInput, setMemberInput] = useState('')
   // Families saved before the split existed carried one untyped `memberCount`.
   // Seed it into the men box so editing an old family never loses the number.
@@ -100,8 +125,8 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   const [saving, setSaving] = useState(false)
   // Picking from phone contacts (Android). `contactNumbers` keeps every number
   // of the last picked contact so the user can switch when there are several.
-  const [contactNumbers, setContactNumbers] = useState([])
-  const [phoneNote, setPhoneNote] = useState(null)
+  const [contactNumbers, setContactNumbers] = useState(initial?.phones || [])
+  const [phoneNote, setPhoneNote] = useState(() => (initial ? sharedNote(initial) : null))
   const [memberNote, setMemberNote] = useState(null)
   // The button is shown wherever the picker exists, and on every Android
   // browser so a user without it is told to use Chrome instead of seeing
@@ -132,10 +157,10 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   // on top of the first is refused by the browser itself (the "busy" note).
   async function pickHeadOfFamily() {
     setPhoneNote(null)
-    const { contacts, error: pickError, detail } = await pickContacts()
+    const { contacts, error: pickError, detail, wentHidden } = await pickContacts()
     if (pickError) return setPhoneNote(failNote(pickError, detail))
     const c = contacts[0]
-    if (!c) return setPhoneNote({ kind: 'error', text: CONTACT_MESSAGES.none })
+    if (!c) return setPhoneNote(emptyNote(wentHidden))
     if (!c.name && !c.phones.length) {
       return setPhoneNote({ kind: 'error', text: CONTACT_MESSAGES.blank })
     }
@@ -159,14 +184,13 @@ export default function FamilyForm({ family, side, cities, tags, onClose }) {
   // list is not added twice, so re-picking is harmless.
   async function pickMembers() {
     setMemberNote(null)
-    const { contacts, error: pickError, detail } = await pickContacts({ multiple: true })
+    const { contacts, error: pickError, detail, wentHidden } = await pickContacts({ multiple: true })
     if (pickError) return setMemberNote(failNote(pickError, detail))
     const names = [...new Set(contacts.map((c) => c.name).filter(Boolean))]
     if (!names.length) {
-      return setMemberNote({
-        kind: 'error',
-        text: contacts.length ? CONTACT_MESSAGES.blank : CONTACT_MESSAGES.none,
-      })
+      return setMemberNote(
+        contacts.length ? { kind: 'error', text: CONTACT_MESSAGES.blank } : emptyNote(wentHidden)
+      )
     }
     const fresh = names.filter((n) => !members.includes(n))
     if (fresh.length) setMembers((prev) => [...prev, ...fresh.filter((n) => !prev.includes(n))])

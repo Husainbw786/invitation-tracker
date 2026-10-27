@@ -10,9 +10,11 @@ manage their own separate guest list.
 
 - **Families** — add each invited family by surname / head of the family, with
   optional member names (or just a count) and phone number.
-- **Pick from phone contacts** — on Android, tap **Contacts** next to the phone
-  box to choose the family from the phone's contacts; the name and number are
-  filled in. Members can be picked from contacts the same way, several at once.
+- **From phone contacts** — on Android, share a person from the phone's
+  Contacts app to **Invitations** and the Add Family form opens with their name
+  and number filled in (share several people at once and the rest become
+  members). There is also a **Contacts** button next to the phone box that
+  opens Chrome's contact picker, where Chrome supports it.
 - **Tags** — create your own tags (`all`, `main function`, `mamera`, …); tag
   counts show on the dashboard and every tag is clickable to filter.
 - **Cities** — the most important filter: the dashboard shows a card per city
@@ -59,6 +61,30 @@ click **Publish**.
 
 ## Phone contacts (Android)
 
+### Share a contact into the app (works with every contacts app)
+
+1. In the phone's Contacts app, open the person and tap **Share** (on some
+   phones: the three-dot menu, then Share, then "vCard file").
+2. Choose **Invitations** in the share sheet.
+3. The app opens the Add Family form with the name and first number filled in,
+   and a green line saying what was taken. Sharing several people at once makes
+   the first the head of the family and the rest members.
+
+This uses the installed app's share target (`share_target` in
+[`public/manifest.webmanifest`](public/manifest.webmanifest)): the service
+worker receives the shared vCard, keeps it in the cache and sends the app to
+`/?shared-contact=1`, where [`src/lib/share.js`](src/lib/share.js) reads it
+once and [`src/lib/vcard.js`](src/lib/vcard.js) pulls out the name and
+numbers (vCard 2.1 and 3.0, including the quoted-printable names Samsung
+phones write). Plain-text shares ("Name / number") are understood too.
+
+It needs the app to be **installed from Chrome** (Install App). Chrome refreshes
+an installed app's manifest about once a day, so after this change
+**Invitations** may take a day to appear in the share sheet; to get it at once,
+uninstall the app and install it again from Chrome.
+
+### The Contacts button (Chrome's contact picker)
+
 The **Contacts** buttons in the Add Family form use the browser's Contact
 Picker API. Tapping one opens a contact picker:
 
@@ -95,6 +121,12 @@ Requirements:
 - To see exactly what the phone handed over, plug it in, open
   `chrome://inspect` on a computer, and look for "Contact picker returned" in
   the console.
+- **Known Chrome bug.** On the newest Android versions Chrome opens the phone's
+  own Contacts app for the pick, which sends the web app to the background, and
+  Chrome then cancels the pick as soon as that happens, so the chosen contact
+  never arrives (Chrome's `ContactsPicker` tears the picker down whenever the
+  tab is hidden). The form detects this and points to the share route above,
+  which does not depend on the picker at all.
 
 The code is in [`src/lib/contacts.js`](src/lib/contacts.js).
 
