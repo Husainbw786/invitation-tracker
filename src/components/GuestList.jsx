@@ -8,7 +8,7 @@ import {
   Phone,
   PencilSimple,
   Trash,
-  ArrowRight,
+  CaretRight,
   X,
   Check,
   CaretDown,
@@ -17,42 +17,45 @@ import {
   Baby,
 } from '@phosphor-icons/react'
 import {
-  updateFamily,
-  deleteFamily,
+  NO_CITY,
+  updateGuest,
+  deleteGuest,
   effectiveCount,
   countBreakdown,
   tagAttendance,
-  CARD_STATUSES,
-  CARD_STATUS_LABELS,
 } from '../lib/store.js'
+import { nextStep, plural, stepLabel, stepOf, stepTone } from '../lib/eventTypes.js'
 
-const STATUS_FILTER_LABELS = { ...CARD_STATUS_LABELS, 'not-delivered': 'Not delivered yet' }
+export const EMPTY_FILTERS = { search: '', city: null, tag: null, gift: null, cardStatus: null }
 
-function plural(n, one, many = `${one}s`) {
-  return `${n} ${n === 1 ? one : many}`
+// "Ayaan & Sara" -> "ayaan-sara", for file names.
+function slug(text) {
+  return (
+    String(text)
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'guest-list'
+  )
 }
 
-function nextStatus(status) {
-  const i = CARD_STATUSES.indexOf(status)
-  return CARD_STATUSES[(i + 1) % CARD_STATUSES.length]
-}
-
-function exportCsv(families) {
+function exportCsv(event, words, rows) {
   const header = [
-    'Family',
+    words.One,
     'City',
     'Phone',
-    'Guests',
+    words.headMany[0].toUpperCase() + words.headMany.slice(1),
     'Men',
     'Women',
     'Children',
     'Members',
     'Tags',
-    'Gift',
-    'Card Status',
+    ...(words.giftsOn ? [words.gift] : []),
+    'Status',
     'Notes',
   ]
-  const rows = families.map((f) => {
+  const lines = rows.map((f) => {
     const b = countBreakdown(f)
     return [
       f.name,
@@ -64,18 +67,18 @@ function exportCsv(families) {
       b.child || '',
       (f.members || []).join('; '),
       (f.tags || []).join('; '),
-      f.gift ? 'Yes' : 'No',
-      CARD_STATUS_LABELS[f.cardStatus] || f.cardStatus,
+      ...(words.giftsOn ? [f.gift ? 'Yes' : 'No'] : []),
+      stepLabel(words, f.cardStatus),
       f.notes || '',
     ]
   })
-  const csv = [header, ...rows]
+  const csv = [header, ...lines]
     .map((r) => r.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(','))
     .join('\n')
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = 'wedding-invitations.csv'
+  a.download = `${slug(event.name)}-guests.csv`
   // Firefox only downloads from links that are in the document, and revoking
   // the URL straight after click() can cancel the download in Safari.
   document.body.appendChild(a)
@@ -84,10 +87,10 @@ function exportCsv(families) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
 
-function printChecklist(families) {
+function printChecklist(event, words, rows) {
   const byCity = {}
-  for (const f of families) {
-    const city = f.city.trim() || 'Unknown'
+  for (const f of rows) {
+    const city = f.city.trim() || 'No city'
     ;(byCity[city] ??= []).push(f)
   }
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -95,9 +98,11 @@ function printChecklist(families) {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(
       ([city, list]) => `
-      <h2>${esc(city)} <span class="count">${list.length} families</span></h2>
+      <h2>${esc(city)} <span class="count">${esc(plural(list.length, words.one, words.many))}</span></h2>
       <table>
-        <tr><th></th><th>Family</th><th>Guests</th><th>M</th><th>W</th><th>C</th><th>Phone</th><th>Gift</th><th>Card status</th></tr>
+        <tr><th></th><th>${esc(words.One)}</th><th>${esc(words.headMany)}</th><th>M</th><th>W</th><th>C</th><th>Phone</th>${
+          words.giftsOn ? `<th>${esc(words.gift)}</th>` : ''
+        }<th>Status</th></tr>
         ${list
           .map((f) => {
             const b = countBreakdown(f)
@@ -109,8 +114,8 @@ function printChecklist(families) {
               <td>${b.female || '-'}</td>
               <td>${b.child || '-'}</td>
               <td>${esc(f.phone || '-')}</td>
-              <td>${f.gift ? 'Yes' : 'No'}</td>
-              <td>${esc(CARD_STATUS_LABELS[f.cardStatus] || f.cardStatus)}</td>
+              ${words.giftsOn ? `<td>${f.gift ? 'Yes' : 'No'}</td>` : ''}
+              <td>${esc(stepLabel(words, f.cardStatus))}</td>
             </tr>`
           })
           .join('')}
@@ -122,29 +127,34 @@ function printChecklist(families) {
     alert('Please allow pop-ups for this site to print the checklist.')
     return
   }
-  w.document.write(`<!doctype html><html><head><title>Invitation Checklist</title>
+  w.document.write(`<!doctype html><html><head><title>${esc(event.name)} · checklist</title>
     <style>
-      body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 24px; color: #2a2421; }
-      h1 { font-size: 22px; color: #2f4f7f; }
-      h2 { font-size: 16px; margin: 24px 0 8px; color: #2f4f7f; }
-      h2 .count { font-size: 12px; color: #6a5e55; font-weight: 400; }
+      body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 24px; color: #29261b; }
+      h1 { font-size: 22px; font-family: Georgia, serif; font-weight: 500; }
+      h2 { font-size: 16px; margin: 24px 0 8px; color: #c15f3c; }
+      h2 .count { font-size: 12px; color: #6f6b5e; font-weight: 400; }
       table { width: 100%; border-collapse: collapse; font-size: 13px; }
-      th, td { border: 1px solid #d8cbb8; padding: 7px 9px; text-align: left; }
-      th { background: #f4eee4; }
+      th, td { border: 1px solid #e3dfd3; padding: 7px 9px; text-align: left; }
+      th { background: #f1eee6; }
       .box { font-size: 17px; text-align: center; width: 30px; }
-      .notes { color: #6a5e55; font-size: 11px; font-style: italic; }
-      .legend { font-size: 11px; color: #6a5e55; margin-top: 4px; }
+      .notes { color: #6f6b5e; font-size: 11px; font-style: italic; }
+      .legend { font-size: 11px; color: #6f6b5e; margin-top: 4px; }
     </style></head><body>
-    <h1>Invitation delivery checklist</h1>
+    <h1>${esc(event.name)} · invitation checklist</h1>
     <p class="legend">M = men, W = women, C = children</p>${sections}
     <script>window.onload = () => window.print()</scr` + `ipt></body></html>`)
   w.document.close()
 }
 
-export default function FamilyList({ families, cities, tags, filters, setFilters, onEdit }) {
+export default function GuestList({ event, words, guests, cities, tags, filters, setFilters, onEdit, canEdit }) {
   const [expanded, setExpanded] = useState(null)
+  const statusFilterLabels = {
+    ...Object.fromEntries(words.steps.map((s) => [s.id, s.label])),
+    'not-done': `Not ${words.doneVerb} yet`,
+  }
+  const hasNoCity = guests.some((f) => !f.city.trim())
 
-  const filtered = families.filter((f) => {
+  const filtered = guests.filter((f) => {
     if (filters.search) {
       const q = filters.search.toLowerCase()
       const haystack = [f.name, f.city, f.phone, f.notes, ...(f.members || []), ...(f.tags || [])]
@@ -152,27 +162,23 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
         .toLowerCase()
       if (!haystack.includes(q)) return false
     }
-    if (filters.city && f.city.trim() !== filters.city) return false
+    if (filters.city === NO_CITY && f.city.trim()) return false
+    if (filters.city && filters.city !== NO_CITY && f.city.trim() !== filters.city) return false
     if (filters.tag && !(f.tags || []).includes(filters.tag)) return false
     if (filters.gift === true && !f.gift) return false
-    if (filters.cardStatus === 'not-delivered' && f.cardStatus === 'delivered') return false
-    if (
-      filters.cardStatus &&
-      filters.cardStatus !== 'not-delivered' &&
-      f.cardStatus !== filters.cardStatus
-    )
-      return false
+    const step = stepOf(words, f.cardStatus)
+    if (filters.cardStatus === 'not-done' && step === words.done.id) return false
+    if (filters.cardStatus && filters.cardStatus !== 'not-done' && step !== filters.cardStatus) return false
     return true
   })
 
-  const totalGuests = filtered.reduce((s, f) => s + effectiveCount(f), 0)
+  const totalPeople = filtered.reduce((s, f) => s + effectiveCount(f), 0)
 
   function set(patch) {
     setFilters({ ...filters, ...patch })
   }
 
-  const hasActiveFilters =
-    filters.search || filters.city || filters.tag || filters.gift || filters.cardStatus
+  const hasActiveFilters = filters.search || filters.city || filters.tag || filters.gift || filters.cardStatus
 
   return (
     <div className="family-list rise">
@@ -182,8 +188,8 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
           <input
             type="search"
             className="search-input"
-            aria-label="Search families"
-            placeholder="Search family, member, city or phone"
+            aria-label={`Search ${words.many}`}
+            placeholder={`Search ${words.one}, member, city or phone`}
             value={filters.search}
             onChange={(e) => set({ search: e.target.value })}
           />
@@ -192,7 +198,9 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
           {/* Each pill shows the chosen value; the real <select> sits invisibly on
               top, so the pill is only as wide as its text, not its longest option. */}
           <span className={filters.city ? 'select-pill active' : 'select-pill'}>
-            <span className="select-pill-text">{filters.city || 'City'}</span>
+            <span className="select-pill-text">
+              {filters.city === NO_CITY ? 'No city' : filters.city || 'City'}
+            </span>
             <CaretDown className="i" size={13} weight="bold" />
             <select
               aria-label="Filter by city"
@@ -203,6 +211,7 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
               {cities.map((c) => (
                 <option key={c}>{c}</option>
               ))}
+              {(hasNoCity || filters.city === NO_CITY) && <option value={NO_CITY}>No city</option>}
             </select>
           </span>
           <span className={filters.tag ? 'select-pill active' : 'select-pill'}>
@@ -220,104 +229,93 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
             </select>
           </span>
           <span className={filters.cardStatus ? 'select-pill active' : 'select-pill'}>
-            <span className="select-pill-text">
-              {STATUS_FILTER_LABELS[filters.cardStatus] || 'Status'}
-            </span>
+            <span className="select-pill-text">{statusFilterLabels[filters.cardStatus] || 'Status'}</span>
             <CaretDown className="i" size={13} weight="bold" />
             <select
-              aria-label="Filter by card status"
+              aria-label="Filter by status"
               value={filters.cardStatus || ''}
               onChange={(e) => set({ cardStatus: e.target.value || null })}
             >
-              <option value="">Any card status</option>
-              {Object.entries(STATUS_FILTER_LABELS).map(([value, label]) => (
+              <option value="">Any status</option>
+              {Object.entries(statusFilterLabels).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
               ))}
             </select>
           </span>
-          <label className={filters.gift ? 'chip-toggle on' : 'chip-toggle'}>
-            <input
-              type="checkbox"
-              checked={filters.gift === true}
-              onChange={(e) => set({ gift: e.target.checked ? true : null })}
-            />
-            {filters.gift ? <Check size={14} weight="bold" /> : <Gift size={14} />} Gifts
-          </label>
+          {words.giftsOn && (
+            <label className={filters.gift ? 'chip-toggle on' : 'chip-toggle'}>
+              <input
+                type="checkbox"
+                checked={filters.gift === true}
+                onChange={(e) => set({ gift: e.target.checked ? true : null })}
+              />
+              {filters.gift ? <Check size={14} weight="bold" /> : <Gift size={14} />} {words.gifts}
+            </label>
+          )}
         </div>
       </div>
 
       <div className="list-meta">
         <div className="list-summary">
           <span className="list-count">
-            {plural(filtered.length, 'family', 'families')} · {plural(totalGuests, 'guest')}
+            {plural(filtered.length, words.one, words.many)} · {plural(totalPeople, words.headOne, words.headMany)}
           </span>
           {hasActiveFilters && (
-            <button
-              className="link-btn"
-              onClick={() =>
-                setFilters({ search: '', city: null, tag: null, gift: null, cardStatus: null })
-              }
-            >
+            <button className="link-btn" onClick={() => setFilters(EMPTY_FILTERS)}>
               Clear filters <X size={13} weight="bold" />
             </button>
           )}
         </div>
         <span className="list-actions">
-          <button className="btn btn-small" onClick={() => printChecklist(filtered)}>
+          <button className="btn btn-small btn-ghost" onClick={() => printChecklist(event, words, filtered)}>
             <Printer size={15} /> Print
           </button>
-          <button
-            className="btn btn-small"
-            onClick={() => exportCsv(filtered)}
-            title="Export as CSV"
-          >
+          <button className="btn btn-small btn-ghost" onClick={() => exportCsv(event, words, filtered)} title="Export as CSV">
             <DownloadSimple size={15} /> CSV
           </button>
         </span>
       </div>
 
       {filtered.length === 0 && (
-        <p className="empty-hint">No families match. Try clearing filters, or add a new family.</p>
+        <p className="empty-hint">
+          No {words.many} match.{' '}
+          {canEdit ? `Try clearing filters, or add a new ${words.one}.` : 'Try clearing filters.'}
+        </p>
       )}
 
-      <ul className="cards">
+      <ul className="rows">
         {filtered.map((f) => {
           const isOpen = expanded === f.id
           const count = effectiveCount(f)
           const breakdown = countBreakdown(f)
-          const meta = [f.city, plural(count, 'guest'), f.gift && 'gift'].filter(Boolean)
+          const meta = [
+            f.city,
+            plural(count, words.headOne, words.headMany),
+            words.giftsOn && f.gift && words.gift.toLowerCase(),
+          ].filter(Boolean)
           return (
             <li key={f.id} className={isOpen ? 'family-card open' : 'family-card'}>
-              <button
-                className="family-head"
-                aria-expanded={isOpen}
-                onClick={() => setExpanded(isOpen ? null : f.id)}
-              >
-                <span className="family-title">
-                  <span className="family-name">{f.name}</span>
-                  <span className="family-meta">{meta.join(' · ')}</span>
-                </span>
-                <span className={`stamp stamp-${f.cardStatus}`}>
-                  {CARD_STATUS_LABELS[f.cardStatus]}
-                </span>
-              </button>
-
-              <div className="quick-actions">
-                <button
-                  className="btn btn-small btn-soft"
-                  onClick={() => updateFamily(f.id, { cardStatus: nextStatus(f.cardStatus) })}
-                  title="Advance card status"
-                >
-                  Card: {CARD_STATUS_LABELS[f.cardStatus]} <ArrowRight size={14} weight="bold" />
+              <div className="guest-line">
+                <button className="row" aria-expanded={isOpen} onClick={() => setExpanded(isOpen ? null : f.id)}>
+                  <span className="row-text">
+                    <span className="row-title">{f.name}</span>
+                    <span className="row-meta">{meta.join(' · ')}</span>
+                  </span>
                 </button>
-                <button
-                  className={f.gift ? 'btn btn-small btn-soft btn-gift on' : 'btn btn-small btn-soft btn-gift'}
-                  onClick={() => updateFamily(f.id, { gift: !f.gift })}
-                >
-                  <Gift size={14} weight={f.gift ? 'fill' : 'regular'} /> Gift: {f.gift ? 'Yes' : 'No'}
-                </button>
+                {canEdit ? (
+                  <button
+                    className={`status status-${stepTone(words, f.cardStatus)}`}
+                    onClick={() => updateGuest(event.id, f.id, { cardStatus: nextStep(words, f.cardStatus) })}
+                    title="Tap to move to the next step"
+                    aria-label={`${stepLabel(words, f.cardStatus)}. Move ${f.name} to ${stepLabel(words, nextStep(words, f.cardStatus))}`}
+                  >
+                    {stepLabel(words, f.cardStatus)} <CaretRight weight="bold" />
+                  </button>
+                ) : (
+                  <span className={`status status-${stepTone(words, f.cardStatus)}`}>{stepLabel(words, f.cardStatus)}</span>
+                )}
               </div>
 
               {isOpen && (
@@ -350,23 +348,23 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                     <p className="detail-breakdown">
                       {breakdown.untyped ? (
                         <span className="bd-item">
-                          <Users size={14} /> {breakdown.total} guests (not split)
+                          <Users size={14} /> {breakdown.total} {words.headMany} (not split)
                         </span>
                       ) : (
                         <>
                           {breakdown.male > 0 && (
                             <span className="bd-item">
-                              <GenderMale size={14} weight="bold" /> {breakdown.male} men
+                              <GenderMale size={14} weight="bold" /> {plural(breakdown.male, 'man', 'men')}
                             </span>
                           )}
                           {breakdown.female > 0 && (
                             <span className="bd-item">
-                              <GenderFemale size={14} weight="bold" /> {breakdown.female} women
+                              <GenderFemale size={14} weight="bold" /> {plural(breakdown.female, 'woman', 'women')}
                             </span>
                           )}
                           {breakdown.child > 0 && (
                             <span className="bd-item">
-                              <Baby size={14} weight="bold" /> {breakdown.child} children
+                              <Baby size={14} weight="bold" /> {plural(breakdown.child, 'child', 'children')}
                             </span>
                           )}
                         </>
@@ -387,19 +385,29 @@ export default function FamilyList({ families, cities, tags, filters, setFilters
                     </p>
                   )}
                   {f.notes && <p className="notes">{f.notes}</p>}
-                  <div className="detail-actions">
-                    <button className="btn btn-small" onClick={() => onEdit(f)}>
-                      <PencilSimple size={14} /> Edit
-                    </button>
-                    <button
-                      className="btn btn-small btn-danger"
-                      onClick={() => {
-                        if (confirm(`Delete "${f.name}" from the list?`)) deleteFamily(f.id)
-                      }}
-                    >
-                      <Trash size={14} /> Delete
-                    </button>
-                  </div>
+                  {canEdit && (
+                    <div className="detail-actions">
+                      {words.giftsOn && (
+                        <button
+                          className={f.gift ? 'btn btn-small btn-soft btn-gift on' : 'btn btn-small btn-soft btn-gift'}
+                          onClick={() => updateGuest(event.id, f.id, { gift: !f.gift })}
+                        >
+                          <Gift size={14} weight={f.gift ? 'fill' : 'regular'} /> {words.gift}: {f.gift ? 'Yes' : 'No'}
+                        </button>
+                      )}
+                      <button className="btn btn-small btn-soft" onClick={() => onEdit(f)}>
+                        <PencilSimple size={14} /> Edit
+                      </button>
+                      <button
+                        className="btn btn-small btn-danger"
+                        onClick={() => {
+                          if (confirm(`Delete "${f.name}" from the list?`)) deleteGuest(event.id, f.id)
+                        }}
+                      >
+                        <Trash size={14} /> Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </li>

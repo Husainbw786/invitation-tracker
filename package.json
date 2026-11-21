@@ -1,14 +1,19 @@
 {
-  "name": "wedding-invites",
+  "name": "invitations",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "VITE_USE_EMULATORS=1 vite",
+    "emulators": "npx -y firebase-tools@15.37.0 emulators:start --only auth,firestore --project demo-invitations",
+    "rules:deploy": "npx -y firebase-tools@15.37.0 deploy --only firestore:rules",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource-variable/source-serif-4": "^5.3.1",
     "@phosphor-icons/react": "^2.1.10",
     "firebase": "^12.19.0",
     "react": "^18.3.1",

@@ -1,31 +1,40 @@
 # invitation-tracker
 
-💍 **Husain ♥ Zainab — Wedding Invitation Manager**
+**Invitations** — guest lists for weddings, birthdays and every other event.
 
-A mobile-first web app to manage physical wedding invitations. Both sides of the
-wedding (Husain's family and Zainab's family) log in with their own email and
-manage their own separate guest list.
+A mobile-first web app to manage invitations. Anyone can create an account,
+make an event, track who is invited and whether their card or message went
+out, and share the list with family who help.
 
 ## Features
 
-- **Families** — add each invited family by surname / head of the family, with
-  optional member names (or just a count) and phone number.
-- **From phone contacts** — on Android, share a person from the phone's
-  Contacts app to **Invitations** and the Add Family form opens with their name
-  and number filled in (share several people at once and the rest become
-  members). There is also a **Contacts** button next to the phone box that
-  opens Chrome's contact picker, where Chrome supports it.
-- **Tags** — create your own tags (`all`, `main function`, `mamera`, …); tag
-  counts show on the dashboard and every tag is clickable to filter.
-- **Cities** — the most important filter: the dashboard shows a card per city
-  with family/guest counts and delivery progress; click it to see every detail.
-- **Card status** — track each physical card: Pending → Card Written → Delivered.
-- **Gifts** — mark which families get a gift; total shown on the dashboard.
-- **Login by side** — each side's email sees only its own list.
-- **Export & print** — CSV export and a print-friendly per-city delivery checklist.
+- **Accounts** — sign up with email and password, or continue with Google.
+  Forgot-password link on the sign-in screen.
+- **Events** — each account can have many events, each with its own guest
+  list. Types: wedding, engagement, birthday, anniversary, aqiqah / naming,
+  housewarming, baby shower, religious gathering, Eid / festival, office,
+  party, or anything else. The type only fills in starting settings
+  ([`src/lib/eventTypes.js`](src/lib/eventTypes.js)); the owner changes them
+  in **Event settings**:
+  - one row is a **family** (with members) or a single **guest**
+  - the **invitation steps** (Pending → Card Written → Delivered, Not sent →
+    Sent, or your own, 2 to 5 steps)
+  - **functions / tags** offered when adding a row
+  - **gifts** on or off, and what to call them ("Gift", "Return gift")
+  - whether **city** is required
+- **Helpers** — the owner adds people by email as **Editor** (add and change
+  guests) or **Viewer** (only look). They sign in with that email and tap
+  **Join**. Email accounts verify their address first; Google accounts are
+  verified already. The **Share** button sends them the link.
+- **Rows** — name, city, phone, members (or just men / women / children
+  counts), tags with per-member or per-tag attendance, gift, status, notes.
+- **Dashboard** — invitations done vs to go, headcount, gifts, a card per city
+  with progress, and headcount per tag. Everything is clickable to filter.
+- **Export & print** — CSV export and a print-friendly per-city checklist.
+- **From phone contacts** — share a contact from the phone's Contacts app to
+  **Invitations**, or use the **Contacts** button in the form (see below).
 - **Install as an app** — tap **Install App** (Chrome on Android/desktop) to put
-  it on the home screen; it opens full-screen like a normal app. On iPhone use
-  Safari → Share → **Add to Home Screen**.
+  it on the home screen. On iPhone use Safari → Share → **Add to Home Screen**.
 
 ## Run locally
 
@@ -34,30 +43,56 @@ npm install
 npm run dev
 ```
 
-## Logins
+`npm run dev` talks to the **live** Firebase project. To try things without
+touching real data, run the Firebase emulators (needs Java 21+) in one
+terminal and the app against them in another:
 
-Logins use **Firebase Authentication** (email + password). The two accounts are
-listed in [`src/lib/auth.js`](src/lib/auth.js), each assigned to one side
-(`husain` or `zainab`). Passwords are set in the Firebase console under
-**Security → Authentication → Users**, never in the code.
+```bash
+npm run emulators
+npm run dev:local
+```
 
-To add an account for a relative: create the user in the Firebase console, add
-the email to `ACCOUNTS` in `src/lib/auth.js`, and add the same email to the map
-in [`firestore.rules`](firestore.rules).
+The emulator UI (accounts, data) is at http://127.0.0.1:4005. Its data is
+thrown away when it stops.
 
 ## Data
 
-Families are stored in **Cloud Firestore** (Firebase project
-`wedding-invites-8e5ff`), one document per family in the `families`
-collection. Changes sync live to every device: add a family on one phone and it
-appears on the others within a second, no refresh. The free Spark plan never
-pauses, however long the app goes unused.
+Stored in **Cloud Firestore** (Firebase project `wedding-invites-8e5ff`).
+Changes sync live to every device.
 
-Each document carries a `side` field (`husain` / `zainab`). The security rules
-in [`firestore.rules`](firestore.rules) only let a logged-in account read and
-write its own side, so the two families keep separate, private guest lists.
-After changing that file, paste it into **Firestore Database → Rules** and
-click **Publish**.
+```
+events/{eventId}                name, subtitle, type, date, venue, settings,
+                                ownerId, memberIds, members { uid: { role, name, email } },
+                                invitedEmails, inviteRoles { email: role }
+events/{eventId}/guests/{id}    one row: name, city, phone, members, counts,
+                                tags, gift, cardStatus, notes, createdAt
+```
+
+The security rules in [`firestore.rules`](firestore.rules) decide who can do
+what: owners change everything, editors add / edit / delete rows, viewers only
+read, and nobody else sees anything. Publish them with
+`npm run rules:deploy` (after `npx firebase-tools login`), or paste the file
+into **Firestore Database → Rules** and click **Publish**.
+
+### The original wedding list
+
+Before events existed, the app was one wedding with two sides, stored in the
+top-level `families` collection. The first time each of those two accounts
+signs in, [`src/lib/migrate.js`](src/lib/migrate.js) copies its side into its
+own event (`events/legacy-husain`, `events/legacy-zainab`) with the same
+wording, order and photos. The old documents are left untouched as a backup.
+Once both lists have moved, delete the "original wedding list" block at the
+end of `firestore.rules` and publish the rules again.
+
+## Firebase console setup
+
+- **Authentication → Sign-in method**: Email/Password on, and **Google** on.
+- **Authentication → Settings → User actions**: "Enable create (sign-up)"
+  must be ticked, or nobody can make an account.
+- **Authentication → Settings → Authorized domains**: the site's domain
+  (for example the Vercel domain) must be listed for Google sign-in.
+- **Authentication → Templates**: the verification and password-reset mails
+  can be given the app's name there.
 
 ## Phone contacts (Android)
 
@@ -66,7 +101,7 @@ click **Publish**.
 1. In the phone's Contacts app, open the person and tap **Share** (on some
    phones: the three-dot menu, then Share, then "vCard file").
 2. Choose **Invitations** in the share sheet.
-3. The app opens the Add Family form with the name and first number filled in,
+3. The app opens the Add form with the name and first number filled in,
    and a green line saying what was taken. Sharing several people at once makes
    the first the head of the family and the rest members.
 
@@ -85,7 +120,7 @@ uninstall the app and install it again from Chrome.
 
 ### The Contacts button (Chrome's contact picker)
 
-The **Contacts** buttons in the Add Family form use the browser's Contact
+The **Contacts** buttons in the Add form use the browser's Contact
 Picker API. Tapping one opens a contact picker:
 
 1. The first time, the browser asks for the phone's **Contacts** permission.
@@ -94,7 +129,7 @@ Picker API. Tapping one opens a contact picker:
    contacts app first and then shows a short confirmation sheet of its own
    (name and number chips); tap **Done** there as well.
 3. Only the ticked contacts reach the app. The rest of the address book is
-   never read, and nothing is uploaded until the family is saved.
+   never read, and nothing is uploaded until the row is saved.
 
 The picked contact's name and first number are filled into the form straight
 away and a green line under the phone box confirms what was taken (with an
@@ -138,7 +173,8 @@ npm run build
 
 Deploy the `dist/` folder to any static host (Vercel / Netlify / GitHub Pages).
 The live site is hosted on Vercel, which builds and deploys `main` automatically
-after every merge.
+after every merge. Publish `firestore.rules` **before** merging a change that
+needs new rules.
 
 ## Tech
 
