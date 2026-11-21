@@ -1,17 +1,175 @@
 rules_version = '2';
 
-// Security rules for the wedding invitation manager.
-// Paste this into: Firebase console -> Firestore Database -> Rules -> Publish.
+// Security rules for the invitation tracker.
 //
-// Each logged-in account may only read and write its own side's families.
-// Keep the email list in sync with ACCOUNTS in src/lib/auth.js.
+// Every event is one guest list. Its members are listed on the event itself:
+//   memberIds  [uid, ...]
+//   members    { uid: { role: 'owner' | 'editor' | 'viewer', name, email } }
+// Owners change everything; editors add, edit and delete guests; viewers only
+// look. Helpers are invited by email (invitedEmails / inviteRoles) and join
+// themselves once their email is verified.
+//
+// Publish with `npm run rules:deploy`, or paste this file into
+// Firebase console -> Firestore Database -> Rules -> Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function me() {
+      return request.auth.uid;
+    }
+
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    // Google accounts are always verified; email accounts after the link in
+    // the verification mail. Without this, anyone could sign up with someone
+    // else's address and take their invitation.
+    function verified() {
+      return request.auth.token.email_verified == true;
+    }
+
+    function isMember(e) {
+      return signedIn() && me() in e.memberIds;
+    }
+
+    function canEdit(e) {
+      return isMember(e) && e.members[me()].role in ['owner', 'editor'];
+    }
+
+    function isOwner(e) {
+      return isMember(e) && e.members[me()].role == 'owner';
+    }
+
+    function invitedMe(e) {
+      return signedIn() && verified() && myEmail() in e.invitedEmails;
+    }
+
+    function validEvent(d) {
+      return d.keys().hasAll([
+          'name', 'type', 'ownerId', 'memberIds', 'members',
+          'invitedEmails', 'inviteRoles', 'settings', 'createdAt'
+        ])
+        && d.keys().hasOnly([
+          'name', 'subtitle', 'type', 'date', 'venue', 'art',
+          'ownerId', 'memberIds', 'members', 'invitedEmails', 'inviteRoles',
+          'settings', 'migratedFrom', 'migratedAt', 'migratedCount',
+          'createdAt', 'updatedAt'
+        ])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 120
+        && d.type is string && d.type.size() <= 40
+        && d.settings is map
+        && d.memberIds is list && d.memberIds.size() <= 50
+        && d.memberIds.toSet().size() == d.memberIds.size()
+        && d.members is map
+        && d.members.keys().toSet() == d.memberIds.toSet()
+        && d.ownerId in d.memberIds
+        && d.members[d.ownerId].role == 'owner'
+        && d.invitedEmails is list && d.invitedEmails.size() <= 50
+        && d.inviteRoles is map;
+    }
+
+    // An invited, verified account adds itself with the role it was given,
+    // and takes its email off the invite list. Nothing else may change.
+    function acceptingInvite() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let email = myEmail();
+      return invitedMe(before)
+        && !(me() in before.memberIds)
+        && after.diff(before).affectedKeys()
+             .hasOnly(['memberIds', 'members', 'invitedEmails', 'inviteRoles'])
+        && after.memberIds.toSet() == before.memberIds.toSet().union([me()].toSet())
+        && after.members.diff(before.members).affectedKeys() == [me()].toSet()
+        && after.members[me()].keys().hasOnly(['role', 'name', 'email'])
+        && after.members[me()].role == before.inviteRoles[email]
+        && after.members[me()].email == email
+        && after.invitedEmails.toSet() == before.invitedEmails.toSet().difference([email].toSet())
+        && !(email in after.inviteRoles)
+        && after.inviteRoles.diff(before.inviteRoles).affectedKeys().hasOnly([email])
+        && validEvent(after);
+    }
+
+    // An invited account says no: only its own email leaves the invite list.
+    function decliningInvite() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let email = myEmail();
+      return invitedMe(before)
+        && after.diff(before).affectedKeys().hasOnly(['invitedEmails', 'inviteRoles'])
+        && after.invitedEmails.toSet() == before.invitedEmails.toSet().difference([email].toSet())
+        && !(email in after.inviteRoles)
+        && after.inviteRoles.diff(before.inviteRoles).affectedKeys().hasOnly([email]);
+    }
+
+    // A helper (not the owner) leaves an event: only itself is removed.
+    function leaving() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return isMember(before)
+        && before.members[me()].role != 'owner'
+        && after.diff(before).affectedKeys().hasOnly(['memberIds', 'members'])
+        && after.memberIds.toSet() == before.memberIds.toSet().difference([me()].toSet())
+        && after.members.diff(before.members).affectedKeys() == [me()].toSet()
+        && !(me() in after.members);
+    }
+
+    function validGuest(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 200
+        && d.keys().hasOnly([
+          'name', 'city', 'phone', 'members', 'memberTags', 'tagCounts',
+          'tags', 'maleCount', 'femaleCount', 'childCount', 'memberCount',
+          'gift', 'cardStatus', 'notes', 'createdAt'
+        ]);
+    }
+
+    match /events/{eventId} {
+      // Reading an id that does not exist is allowed, so the app can check
+      // whether an event is there yet.
+      allow get: if resource == null || isMember(resource.data) || invitedMe(resource.data);
+      allow list: if isMember(resource.data) || invitedMe(resource.data);
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == me()
+        && request.resource.data.memberIds == [me()]
+        && request.resource.data.invitedEmails.size() == 0
+        && validEvent(request.resource.data)
+        // Only the two original accounts may create their moved-over lists.
+        && (!eventId.matches('legacy-.*') || eventId == 'legacy-' + legacySide());
+
+      allow update: if (isOwner(resource.data)
+          && request.resource.data.ownerId == resource.data.ownerId
+          && validEvent(request.resource.data))
+        || acceptingInvite()
+        || decliningInvite()
+        || leaving();
+
+      allow delete: if isOwner(resource.data);
+
+      match /guests/{guestId} {
+        function theEvent() {
+          return get(/databases/$(database)/documents/events/$(eventId)).data;
+        }
+
+        allow read: if isMember(theEvent());
+        allow create, update: if canEdit(theEvent()) && validGuest(request.resource.data);
+        allow delete: if canEdit(theEvent());
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // The original wedding list, from before events existed.
+    // Kept only while Husain's and Zainab's lists are copied into events
+    // (src/lib/migrate.js) and while the old version of the app may still
+    // be open on a phone. Remove this whole block once both lists have moved.
+    // ------------------------------------------------------------------
+
     // The side of the logged-in account, or '' for any other account.
-    // When nobody is logged in, request.auth is null and reading it fails,
-    // which Firestore treats as "deny".
-    function mySide() {
+    function legacySide() {
       return {
         'husainhackerrank@gmail.com': 'husain',
         'zmalik1418@gmail.com': 'zainab'
@@ -19,7 +177,7 @@ service cloud.firestore {
     }
 
     function validFamily(d) {
-      return d.side == mySide()
+      return d.side == legacySide()
         && d.name is string && d.name.size() > 0 && d.name.size() <= 200
         && d.keys().hasOnly([
           'side', 'name', 'city', 'phone', 'members', 'memberTags', 'tagCounts',
@@ -29,9 +187,9 @@ service cloud.firestore {
     }
 
     match /families/{familyId} {
-      allow read, delete: if mySide() != '' && resource.data.side == mySide();
-      allow create: if mySide() != '' && validFamily(request.resource.data);
-      allow update: if mySide() != '' && resource.data.side == mySide()
+      allow read, delete: if signedIn() && legacySide() != '' && resource.data.side == legacySide();
+      allow create: if signedIn() && legacySide() != '' && validFamily(request.resource.data);
+      allow update: if signedIn() && legacySide() != '' && resource.data.side == legacySide()
         && validFamily(request.resource.data);
     }
   }

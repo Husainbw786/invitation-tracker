@@ -10,7 +10,8 @@ import {
   AddressBook,
   CheckCircle,
 } from '@phosphor-icons/react'
-import { addFamily, updateFamily, CARD_STATUS_LABELS } from '../lib/store.js'
+import { addGuest, updateGuest } from '../lib/store.js'
+import { stepOf } from '../lib/eventTypes.js'
 import { canPickContacts, isAndroid, pickContacts } from '../lib/contacts.js'
 
 // The route that always works: share the person from the Contacts app.
@@ -91,9 +92,11 @@ function toCount(value) {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
-// `initial` pre-fills a new family from a contact shared into the app
-// ({ name, phones, members }); `family` is an existing family being edited.
-export default function FamilyForm({ family, initial, side, cities, tags, onClose }) {
+// `initial` pre-fills a new row from a contact shared into the app
+// ({ name, phones, members }); `guest` is an existing row being edited.
+// `words` (from wordsFor) decides the labels, the status steps, whether the
+// city is required and whether gifts are tracked.
+export default function GuestForm({ eventId, words, guest: family, initial, cities, tags, onClose }) {
   const [name, setName] = useState(family?.name || initial?.name || '')
   const [city, setCity] = useState(family?.city || '')
   const [phone, setPhone] = useState(family?.phone || initial?.phones?.[0] || '')
@@ -119,7 +122,7 @@ export default function FamilyForm({ family, initial, side, cities, tags, onClos
   // An unset tag falls back to the full family headcount.
   const [tagCounts, setTagCounts] = useState(family?.tagCounts ? { ...family.tagCounts } : {})
   const [gift, setGift] = useState(family?.gift || false)
-  const [cardStatus, setCardStatus] = useState(family?.cardStatus || 'pending')
+  const [cardStatus, setCardStatus] = useState(family ? stepOf(words, family.cardStatus) : words.steps[0].id)
   const [notes, setNotes] = useState(family?.notes || '')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -244,8 +247,8 @@ export default function FamilyForm({ family, initial, side, cities, tags, onClos
   async function save(e) {
     e.preventDefault()
     if (saving) return
-    if (!name.trim()) return setError('Family name is required.')
-    if (!city.trim()) return setError('City is required. It is your main filter.')
+    if (!name.trim()) return setError(`${words.One} name is required.`)
+    if (words.cityRequired && !city.trim()) return setError('City is required. It is your main filter.')
 
     // Only keep memberTags entries for members still on the list, and only
     // for tags still selected on the family (dropping a tag drops its data).
@@ -264,7 +267,6 @@ export default function FamilyForm({ family, initial, side, cities, tags, onClos
     }
 
     const data = {
-      side,
       name: name.trim(),
       city: city.trim(),
       phone: phone.trim(),
@@ -282,7 +284,7 @@ export default function FamilyForm({ family, initial, side, cities, tags, onClos
     }
     setError('')
     setSaving(true)
-    const ok = family ? await updateFamily(family.id, data) : await addFamily(data)
+    const ok = family ? await updateGuest(eventId, family.id, data) : await addGuest(eventId, data)
     setSaving(false)
     // On failure keep the form open so nothing that was typed is lost.
     if (!ok) return setError('Could not save. Please try again.')
@@ -302,24 +304,24 @@ export default function FamilyForm({ family, initial, side, cities, tags, onClos
     >
       <form className="modal" onSubmit={save}>
         <div className="modal-head">
-          <h2>{family ? 'Edit Family' : 'Add Family'}</h2>
+          <h2>{family ? `Edit ${words.One}` : `Add ${words.One}`}</h2>
           <button type="button" className="close-btn" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
         </div>
 
         <label className="field">
-          <span>Family surname / head of family *</span>
+          <span>{words.nameLabel} *</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Shaikh Family (Abbas Bhai)"
+            placeholder={words.namePlaceholder}
             autoFocus
           />
         </label>
 
         <label className="field">
-          <span>City *</span>
+          <span>{words.cityRequired ? 'City *' : 'City (optional)'}</span>
           <input
             value={city}
             onChange={(e) => setCity(e.target.value)}
@@ -408,7 +410,7 @@ export default function FamilyForm({ family, initial, side, cities, tags, onClos
             <input
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
-              placeholder="New tag e.g. mamera, main function"
+              placeholder="New tag e.g. dinner, main function"
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
             />
             <button type="button" className="btn btn-small" onClick={addTag}>
@@ -522,7 +524,7 @@ export default function FamilyForm({ family, initial, side, cities, tags, onClos
                 />
               </label>
               <p className="count-total">
-                Total guests: <strong>{guestTotal}</strong>
+                Total {words.headMany}: <strong>{guestTotal}</strong>
               </p>
             </div>
           )}
@@ -555,18 +557,20 @@ export default function FamilyForm({ family, initial, side, cities, tags, onClos
         </div>
 
         <div className="field-row">
-          <label className="toggle-field">
-            <input type="checkbox" checked={gift} onChange={(e) => setGift(e.target.checked)} />
-            <Gift size={18} weight="fill" />
-            <span>Gift to be given</span>
-          </label>
+          {words.giftsOn && (
+            <label className="toggle-field">
+              <input type="checkbox" checked={gift} onChange={(e) => setGift(e.target.checked)} />
+              <Gift size={18} weight="fill" />
+              <span>{words.gift} to be given</span>
+            </label>
+          )}
 
           <label className="field">
-            <span>Card status</span>
+            <span>Status</span>
             <select value={cardStatus} onChange={(e) => setCardStatus(e.target.value)}>
-              {Object.entries(CARD_STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
+              {words.steps.map((step) => (
+                <option key={step.id} value={step.id}>
+                  {step.label}
                 </option>
               ))}
             </select>
@@ -579,7 +583,7 @@ export default function FamilyForm({ family, initial, side, cities, tags, onClos
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows="2"
-            placeholder="Anything to remember about this family"
+            placeholder={`Anything to remember about this ${words.one}`}
           />
         </label>
 
@@ -594,7 +598,7 @@ export default function FamilyForm({ family, initial, side, cities, tags, onClos
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? 'Saving...' : family ? 'Save Changes' : 'Add Family'}
+            {saving ? 'Saving...' : family ? 'Save Changes' : `Add ${words.One}`}
           </button>
         </div>
       </form>

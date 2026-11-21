@@ -1,6 +1,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+// Bundled fonts (the same pair as ai-tools-profit), so the app looks right offline.
+import '@fontsource-variable/manrope'
+import '@fontsource-variable/source-serif-4/opsz.css'
 import './lib/install.js' // must listen for Chrome's install event early
 import './styles.css'
 

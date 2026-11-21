@@ -1,29 +1,15 @@
-// Data layer for the app, backed by Cloud Firestore. Every family is one
-// document in the `families` collection, shared across every device and
-// live-synced.
-//
-// Every subscription is scoped to one side ('husain' | 'zainab'), so a side
-// only ever fetches its own guest list. The Firestore rules enforce the same
-// thing on the server.
+// Guests of one event, backed by Cloud Firestore: every guest (a family, or
+// a single guest, depending on the event) is one document in
+// `events/{eventId}/guests`, shared across every device and live-synced.
+// Who may read or change them is decided by the event's members, in
+// firestore.rules.
 
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  query,
-  updateDoc,
-  where,
-} from 'firebase/firestore'
-import { db, COLLECTION } from './firebase.js'
+import { addDoc, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore'
+import { guestsRef } from './events.js'
 
-const families = collection(db, COLLECTION)
-
-// The fields a family document may hold. Anything else is dropped on write,
+// The fields a guest document may hold. Anything else is dropped on write,
 // and `id` is the document id, never a field.
-const FIELDS = [
-  'side',
+export const GUEST_FIELDS = [
   'name',
   'city',
   'phone',
@@ -44,7 +30,6 @@ function fromDoc(snap) {
   const d = snap.data()
   return {
     id: snap.id,
-    side: d.side,
     name: d.name || '',
     city: d.city || '',
     phone: d.phone || '',
@@ -64,9 +49,9 @@ function fromDoc(snap) {
 }
 
 // Only copies keys that are present, so partial updates stay partial.
-function pick(obj) {
+export function pickGuest(obj) {
   const out = {}
-  for (const key of FIELDS) {
+  for (const key of GUEST_FIELDS) {
     if (key in obj) out[key] = obj[key]
   }
   return out
@@ -75,63 +60,69 @@ function pick(obj) {
 // ---------------------------------------------------------------- public API
 
 /**
- * Watch one side's families. Calls fn(families) with the current list and
- * again on every change, including this device's own writes (instantly) and
- * other devices' writes (live). Returns an unsubscribe function.
+ * Watch one event's guests. Calls fn(guests) with the current list and again
+ * on every change, including this device's own writes (instantly) and other
+ * devices' writes (live). Returns an unsubscribe function.
  */
-export function subscribe(side, fn) {
-  if (!side) {
+export function subscribe(eventId, fn) {
+  if (!eventId) {
     fn([])
     return () => {}
   }
-  // Sorted here rather than with orderBy, which would need a composite index.
+  // Sorted here rather than with orderBy, which would need an index.
   return onSnapshot(
-    query(families, where('side', '==', side)),
+    guestsRef(eventId),
     (snap) => fn(snap.docs.map(fromDoc).sort((a, b) => a.createdAt - b.createdAt)),
     (error) => console.error('Firestore load failed', error.code, error.message)
   )
 }
 
-export async function addFamily(data) {
+export async function addGuest(eventId, data) {
   try {
-    const ref = await addDoc(families, { ...pick(data), createdAt: Date.now() })
+    const ref = await addDoc(guestsRef(eventId), { ...pickGuest(data), createdAt: Date.now() })
     return { ...data, id: ref.id }
   } catch (e) {
-    console.error('Could not add family', e.code, e.message)
-    alert('Could not save this family. Check your internet connection.')
+    console.error('Could not add guest', e.code, e.message)
+    alert('Could not save. Check your internet connection.')
     return null
   }
 }
 
-export async function updateFamily(id, patch) {
+export async function updateGuest(eventId, id, patch) {
   try {
-    // Fails with not-found if the family was deleted on another device,
+    // Fails with not-found if the guest was deleted on another device,
     // instead of silently reporting success.
-    await updateDoc(doc(families, id), pick(patch))
+    await updateDoc(doc(guestsRef(eventId), id), pickGuest(patch))
     return true
   } catch (e) {
-    console.error('Could not update family', e.code, e.message)
+    console.error('Could not update guest', e.code, e.message)
     alert(
       e.code === 'not-found'
-        ? 'This family was deleted on another device.'
-        : 'Could not save that change. Check your internet connection.'
+        ? 'This was deleted on another device.'
+        : e.code === 'permission-denied'
+          ? 'You can only look at this list, not change it.'
+          : 'Could not save that change. Check your internet connection.'
     )
     return false
   }
 }
 
-export async function deleteFamily(id) {
+export async function deleteGuest(eventId, id) {
   try {
-    await deleteDoc(doc(families, id))
+    await deleteDoc(doc(guestsRef(eventId), id))
     return true
   } catch (e) {
-    console.error('Could not delete family', e.code, e.message)
-    alert('Could not delete that family. Check your internet connection.')
+    console.error('Could not delete guest', e.code, e.message)
+    alert('Could not delete that. Check your internet connection.')
     return false
   }
 }
 
 // ---------------------------------------------------------------- counting
+
+// City filter value for rows saved without a city.
+export const NO_CITY = '(no city)'
+
 
 // Men / women / children split for a family.
 // Families saved before this feature existed only had a single `memberCount`,
@@ -175,12 +166,4 @@ export function tagAttendance(family, tag) {
   const tc = family.tagCounts || {}
   if (Object.prototype.hasOwnProperty.call(tc, tag)) return Number(tc[tag]) || 0
   return effectiveCount(family)
-}
-
-export const CARD_STATUSES = ['pending', 'written', 'delivered']
-
-export const CARD_STATUS_LABELS = {
-  pending: 'Pending',
-  written: 'Card Written',
-  delivered: 'Delivered',
 }

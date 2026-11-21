@@ -1,198 +1,236 @@
-import { Confetti } from '@phosphor-icons/react'
-import { effectiveCount, countBreakdown, tagAttendance } from '../lib/store.js'
+import { ArrowRight, Clock, Confetti, Gift, Users, UsersThree } from '@phosphor-icons/react'
+import { NO_CITY, effectiveCount, countBreakdown, tagAttendance } from '../lib/store.js'
+import { plural, stepOf } from '../lib/eventTypes.js'
+import { formatDate } from './EventList.jsx'
 
-function plural(n, one, many = `${one}s`) {
-  return `${n} ${n === 1 ? one : many}`
-}
-
-// The hero's one-line summary of how the card deliveries are going.
-function deliveryHeadline(delivered, total) {
-  const left = total - delivered
+// The hero's one-line summary of how the invitations are going.
+function headline(words, done, total) {
+  const left = total - done
   if (total === 0) return 'Your list starts here'
-  if (left === 0) return `All ${plural(total, 'card')} delivered`
-  if (delivered === 0) return `${plural(left, 'card')} to go`
-  return `${plural(delivered, 'card')} out, ${left} to go`
+  if (left === 0 && total === 1) return `1 ${words.inviteWord} ${words.doneVerb}`
+  if (left === 0) return `All ${plural(total, words.inviteWord)} ${words.doneVerb}`
+  if (done === 0) return `${plural(left, words.inviteWord)} to go`
+  return `${plural(done, words.inviteWord)} ${words.doneVerb}, ${left} to go`
 }
 
-export default function Dashboard({ families, onDrillDown }) {
-  const totalFamilies = families.length
-  const totalMembers = families.reduce((sum, f) => sum + effectiveCount(f), 0)
-  const giftCount = families.filter((f) => f.gift).length
-  const delivered = families.filter((f) => f.cardStatus === 'delivered').length
-  const pendingCards = totalFamilies - delivered
+function daysToGo(date) {
+  if (!date) return ''
+  const day = new Date(`${date}T00:00:00`)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const days = Math.round((day - today) / 86400000)
+  if (Number.isNaN(days)) return ''
+  if (days === 0) return 'today'
+  if (days === 1) return 'tomorrow'
+  if (days > 1) return `${days} days to go`
+  return ''
+}
 
-  const guests = { male: 0, female: 0, child: 0, untyped: 0 }
-  for (const f of families) {
+export default function Dashboard({ event, words, guests, canEdit, onDrillDown }) {
+  const isDone = (f) => stepOf(words, f.cardStatus) === words.done.id
+  const totalRows = guests.length
+  const totalPeople = guests.reduce((sum, f) => sum + effectiveCount(f), 0)
+  const giftCount = guests.filter((f) => f.gift).length
+  const done = guests.filter(isDone).length
+  const notDone = totalRows - done
+
+  const people = { male: 0, female: 0, child: 0, untyped: 0 }
+  for (const f of guests) {
     if (f.members?.length) {
-      guests.untyped += f.members.length
+      people.untyped += f.members.length
       continue
     }
     const b = countBreakdown(f)
-    if (b.untyped) guests.untyped += b.total
+    if (b.untyped) people.untyped += b.total
     else {
-      guests.male += b.male
-      guests.female += b.female
-      guests.child += b.child
-      if (b.total === 0) guests.untyped += 1
+      people.male += b.male
+      people.female += b.female
+      people.child += b.child
+      if (b.total === 0) people.untyped += 1
     }
   }
-  const hasSplit = guests.male + guests.female + guests.child > 0
+  const hasSplit = people.male + people.female + people.child > 0
 
   const byCity = {}
-  for (const f of families) {
-    const city = f.city.trim() || 'Unknown'
-    byCity[city] ??= { families: 0, members: 0, delivered: 0 }
-    byCity[city].families += 1
-    byCity[city].members += effectiveCount(f)
-    if (f.cardStatus === 'delivered') byCity[city].delivered += 1
+  for (const f of guests) {
+    const city = f.city.trim() || NO_CITY
+    byCity[city] ??= { rows: 0, people: 0, done: 0 }
+    byCity[city].rows += 1
+    byCity[city].people += effectiveCount(f)
+    if (isDone(f)) byCity[city].done += 1
   }
+  const showCities = words.cityRequired || guests.some((f) => f.city.trim())
 
-  // Attendee headcount per tag (not just how many families carry it), so
-  // "mehndi" shows how many people are actually coming, not how many families.
+  // Attendee headcount per tag (not just how many rows carry it), so
+  // "mehndi" shows how many people are actually coming.
   const byTag = {}
-  for (const f of families) {
+  for (const f of guests) {
     for (const tag of f.tags || []) {
       byTag[tag] = (byTag[tag] || 0) + tagAttendance(f, tag)
     }
   }
 
+  const countdown = daysToGo(event.date)
+  const where = [formatDate(event.date), event.venue].filter(Boolean).join(' · ')
+  const pct = totalRows ? Math.round((done / totalRows) * 100) : 0
+
   return (
     <div className="dashboard rise">
-      <section className="hero">
-        <div className="hero-text">
-          <p className="hero-note">our wedding</p>
-          <h2 className="hero-headline">{deliveryHeadline(delivered, totalFamilies)}</h2>
-          {totalFamilies > 0 && (
-            <div
-              className="hero-progress"
-              role="img"
-              aria-label={`${delivered} of ${totalFamilies} cards delivered`}
-            >
-              {delivered > 0 && <span className="seg seg-done" style={{ flexGrow: delivered }} />}
-              {pendingCards > 0 && <span className="seg" style={{ flexGrow: pendingCards }} />}
-            </div>
-          )}
-        </div>
-        <figure className="polaroid polaroid-hero">
-          <img src="/couple-painting.jpeg" alt="Painted portrait of Husain and Zainab" />
-          <figcaption>us</figcaption>
-          <span className="tape" aria-hidden="true" />
-        </figure>
-      </section>
-
-      <section className="stat-grid">
-        <button className="stat-card" onClick={() => onDrillDown({})}>
-          <span className="stat-value">{totalFamilies}</span>
-          <span className="stat-label">Families invited</span>
-        </button>
-        <div className="stat-card">
-          <span className="stat-value">{totalMembers}</span>
-          <span className="stat-label">Total guests</span>
-        </div>
-        <button className="stat-card" onClick={() => onDrillDown({ gift: true })}>
-          <span className="stat-value">{giftCount}</span>
-          <span className="stat-label">Gifts to give</span>
-        </button>
-        <button
-          className="stat-card"
-          onClick={() => onDrillDown({ cardStatus: 'not-delivered' })}
-        >
-          <span className="stat-value">
-            {delivered} <span className="stat-of">of {totalFamilies}</span>
+      <section className="hero-card">
+        <div className="hero-top">
+          <span className="hero-label">
+            {words.InviteWord}s {words.doneVerb}
           </span>
-          <span className="stat-label">Cards delivered</span>
-        </button>
-      </section>
-
-      {hasSplit && (
-        <section className="breakdown" aria-label="Guest breakdown">
-          <div className="bd-cell">
-            <strong>{guests.male}</strong>
-            <span>Men</span>
-          </div>
-          <div className="bd-cell">
-            <strong>{guests.female}</strong>
-            <span>Women</span>
-          </div>
-          <div className="bd-cell">
-            <strong>{guests.child}</strong>
-            <span>Children</span>
-          </div>
-          {guests.untyped > 0 && (
-            <div className="bd-cell bd-cell-muted">
-              <strong>{guests.untyped}</strong>
-              <span>Not split</span>
-            </div>
-          )}
-        </section>
-      )}
-
-      {families.length === 0 && (
-        <p className="empty-hint">
-          <Confetti className="empty-icon i" size={30} weight="duotone" />
-          <br />
-          No families added yet. Tap <strong>Add family</strong> above to start your list.
+          {countdown && <span className="hero-chip">{countdown}</span>}
+        </div>
+        <p className="hero-number">
+          {done}
+          <span className="hero-of"> / {totalRows}</span>
         </p>
-      )}
-
-      <section className="section">
-        <div className="section-head">
-          <h2 className="section-title">Cities</h2>
-          <span className="section-note">tap one for the full list</span>
+        <div
+          className="progress"
+          role="img"
+          aria-label={`${done} of ${totalRows} ${words.inviteWords} ${words.doneVerb}`}
+        >
+          <span style={{ width: `${pct}%` }} />
         </div>
-        {Object.keys(byCity).length === 0 ? (
-          <p className="empty-hint">Cities appear here automatically as you add families.</p>
-        ) : (
-          <div className="city-grid">
-            {Object.entries(byCity)
-              .sort((a, b) => b[1].families - a[1].families)
-              .map(([city, s]) => (
-                <button
-                  key={city}
-                  className="city-card"
-                  onClick={() => onDrillDown({ city })}
-                >
-                  <span className="city-name">{city}</span>
-                  <span className="city-meta">
-                    {plural(s.families, 'family', 'families')} · {plural(s.members, 'guest')}
-                  </span>
-                  <span className="progress">
-                    <span
-                      className="progress-fill"
-                      style={{ width: `${(s.delivered / s.families) * 100}%` }}
-                    />
-                  </span>
-                  <span className="city-note">
-                    {s.delivered} of {s.families} delivered
-                  </span>
-                </button>
-              ))}
-          </div>
-        )}
+        <p className="hero-foot">{totalRows ? headline(words, done, totalRows) : where || headline(words, 0, 0)}</p>
+        {totalRows > 0 && where && <p className="hero-foot">{where}</p>}
       </section>
 
-      <section className="section">
-        <div className="section-head">
-          <h2 className="section-title">Tags</h2>
-          <span className="section-note">guests, not families</span>
+      {guests.length === 0 ? (
+        <div className="empty">
+          <span className="empty-icon">
+            <Confetti weight="duotone" />
+          </span>
+          <h3>Your list is empty</h3>
+          <p>
+            {canEdit ? (
+              <>
+                Tap <strong>Add {words.one}</strong> to start your list.
+              </>
+            ) : (
+              <>Nothing on this list yet.</>
+            )}
+          </p>
         </div>
-        <div className="tag-cloud">
-          {Object.entries(byTag)
-            .sort((a, b) => b[1] - a[1])
-            .map(([tag, count]) => (
-              <button
-                key={tag}
-                className="tag-chip tag-chip-stat"
-                onClick={() => onDrillDown({ tag })}
-              >
-                {tag} <span className="tag-count">{count}</span>
+      ) : (
+        <>
+          <section className="tiles">
+            <button className={notDone ? 'tile tile-accent' : 'tile'} onClick={() => onDrillDown({ cardStatus: 'not-done' })}>
+              <span className="tile-top">
+                <Clock weight="duotone" />
+                <ArrowRight weight="bold" />
+              </span>
+              <span className="tile-value">{notDone}</span>
+              <span className="tile-label">Not {words.doneVerb} yet</span>
+            </button>
+            <button className="tile" onClick={() => onDrillDown({})}>
+              <span className="tile-top">
+                <Users weight="duotone" />
+                <ArrowRight weight="bold" />
+              </span>
+              <span className="tile-value">{totalRows}</span>
+              <span className="tile-label">{words.Many} invited</span>
+            </button>
+            <div className="tile">
+              <span className="tile-top">
+                <UsersThree weight="duotone" />
+              </span>
+              <span className="tile-value">{totalPeople}</span>
+              <span className="tile-label">Total {words.headMany}</span>
+            </div>
+            {words.giftsOn && (
+              <button className="tile" onClick={() => onDrillDown({ gift: true })}>
+                <span className="tile-top">
+                  <Gift weight="duotone" />
+                  <ArrowRight weight="bold" />
+                </span>
+                <span className="tile-value">{giftCount}</span>
+                <span className="tile-label">{words.gifts} to give</span>
               </button>
-            ))}
-          {Object.keys(byTag).length === 0 && (
-            <p className="empty-hint">No tags yet. Add your own tags while creating a family.</p>
+            )}
+          </section>
+
+          {hasSplit && (
+            <section className="split" aria-label="Guest breakdown">
+              <div className="split-cell">
+                <strong>{people.male}</strong>
+                <span>Men</span>
+              </div>
+              <div className="split-cell">
+                <strong>{people.female}</strong>
+                <span>Women</span>
+              </div>
+              <div className="split-cell">
+                <strong>{people.child}</strong>
+                <span>Children</span>
+              </div>
+              {people.untyped > 0 && (
+                <div className="split-cell split-muted">
+                  <strong>{people.untyped}</strong>
+                  <span>Not split</span>
+                </div>
+              )}
+            </section>
           )}
-        </div>
-      </section>
+
+          {showCities && (
+            <section className="section">
+              <div className="section-head">
+                <h2 className="section-title">Cities</h2>
+                <span className="section-note">tap one for its list</span>
+              </div>
+              <ul className="rows">
+                {Object.entries(byCity)
+                  .sort((a, b) => b[1].rows - a[1].rows)
+                  .map(([city, s]) => (
+                    <li key={city}>
+                      <button className="row" onClick={() => onDrillDown({ city })}>
+                        <span className="row-text">
+                          <span className="row-title">{city === NO_CITY ? 'No city' : city}</span>
+                          <span className="row-meta">
+                            {plural(s.rows, words.one, words.many)} · {plural(s.people, words.headOne, words.headMany)}
+                          </span>
+                        </span>
+                        <span className="city-right">
+                          <span className="city-count">
+                            {s.done} / {s.rows} {words.doneVerb}
+                          </span>
+                          <span className="mini-progress">
+                            <span style={{ width: `${(s.done / s.rows) * 100}%` }} />
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          )}
+
+          <section className="section">
+            <div className="section-head">
+              <h2 className="section-title">Tags</h2>
+              <span className="section-note">
+                {words.headMany}, not {words.many}
+              </span>
+            </div>
+            {Object.keys(byTag).length === 0 ? (
+              <p className="empty-hint">No tags yet. Add tags (like functions) while adding a {words.one}.</p>
+            ) : (
+              <div className="tag-cloud">
+                {Object.entries(byTag)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([tag, count]) => (
+                    <button key={tag} className="tag-chip" onClick={() => onDrillDown({ tag })}>
+                      {tag} <span className="tag-count">{count}</span>
+                    </button>
+                  ))}
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </div>
   )
 }
