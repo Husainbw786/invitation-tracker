@@ -10,6 +10,8 @@
 //     settings       see eventTypes.js (defaultSettings)
 //     createdAt, updatedAt
 //   events/{eventId}/guests/{guestId}         see store.js
+//   events/{eventId}/public/card              see rsvp.js
+//   events/{eventId}/rsvps/{token}            see rsvp.js
 //
 // firestore.rules enforces who may do what; the helpers below only make the
 // writes the rules allow.
@@ -43,6 +45,15 @@ export function eventRef(eventId) {
 
 export function guestsRef(eventId) {
   return collection(db, 'events', eventId, 'guests')
+}
+
+export function rsvpsRef(eventId) {
+  return collection(db, 'events', eventId, 'rsvps')
+}
+
+/** What a guest's RSVP page may show about the event (see rsvp.js). */
+export function cardRef(eventId) {
+  return doc(db, 'events', eventId, 'public', 'card')
 }
 
 function fromDoc(snap) {
@@ -151,12 +162,18 @@ export async function createEvent(session, { type, name, subtitle, date, venue }
 
 const DETAIL_FIELDS = ['name', 'subtitle', 'type', 'date', 'venue', 'settings']
 
-/** Owner only: name, date, type, settings and so on. Resolves to true/false. */
-export async function updateEvent(eventId, patch) {
+/**
+ * Owner only: name, date, type, settings and so on. With `card`, the public
+ * card RSVP pages read is saved in the same write. Resolves to true/false.
+ */
+export async function updateEvent(eventId, patch, card) {
   const data = { updatedAt: Date.now() }
   for (const key of DETAIL_FIELDS) if (key in patch) data[key] = patch[key]
   try {
-    await updateDoc(eventRef(eventId), data)
+    const batch = writeBatch(db)
+    batch.update(eventRef(eventId), data)
+    if (card) batch.set(cardRef(eventId), card)
+    await batch.commit()
     return true
   } catch (e) {
     console.error('Could not update event', e.code, e.message)
@@ -164,18 +181,24 @@ export async function updateEvent(eventId, patch) {
   }
 }
 
-// Small batches: every guest delete makes the rules look up the event once.
+// Small batches: every delete makes the rules look up the event once.
 const DELETE_BATCH = 100
 
-/** Owner only: removes every guest, then the event itself. */
+async function deleteAll(ref) {
+  const snap = await getDocs(ref)
+  for (let i = 0; i < snap.docs.length; i += DELETE_BATCH) {
+    const batch = writeBatch(db)
+    snap.docs.slice(i, i + DELETE_BATCH).forEach((d) => batch.delete(d.ref))
+    await batch.commit()
+  }
+}
+
+/** Owner only: removes every guest, RSVP link and the public card, then the event itself. */
 export async function deleteEvent(eventId) {
   try {
-    const snap = await getDocs(guestsRef(eventId))
-    for (let i = 0; i < snap.docs.length; i += DELETE_BATCH) {
-      const batch = writeBatch(db)
-      snap.docs.slice(i, i + DELETE_BATCH).forEach((d) => batch.delete(d.ref))
-      await batch.commit()
-    }
+    await deleteAll(guestsRef(eventId))
+    await deleteAll(rsvpsRef(eventId))
+    await deleteDoc(cardRef(eventId))
     await deleteDoc(eventRef(eventId))
     return true
   } catch (e) {

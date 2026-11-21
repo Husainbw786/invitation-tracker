@@ -9,6 +9,11 @@ rules_version = '2';
 // look. Helpers are invited by email (invitedEmails / inviteRoles) and join
 // themselves once their email is verified.
 //
+// RSVP: a guest answers through a private link without an account. The link
+// holds the event id and a long random token; with it, anyone can read that
+// one RSVP document and the event's public card, and answer while the owner
+// has replies open. Nothing else, and never the guest list.
+//
 // Publish with `npm run rules:deploy`, or paste this file into
 // Firebase console -> Firestore Database -> Rules -> Publish.
 service cloud.firestore {
@@ -127,6 +132,61 @@ service cloud.firestore {
         ]);
     }
 
+    function eventData(eventId) {
+      return get(/databases/$(database)/documents/events/$(eventId)).data;
+    }
+
+    // What a guest's RSVP page shows about the event.
+    function validCard(d) {
+      return d.keys().hasOnly([
+          'name', 'subtitle', 'type', 'date', 'venue', 'art', 'hostName',
+          'rsvpOn', 'closesAt', 'updatedAt'
+        ])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 120
+        && d.rsvpOn is bool
+        && (d.get('closesAt', null) == null || d.closesAt is int);
+    }
+
+    // An RSVP answer, whoever gives it.
+    function validAnswer(r) {
+      return r is map
+        && r.keys().hasAll(['status', 'people', 'functions', 'note', 'at', 'by'])
+        && r.keys().hasOnly(['status', 'people', 'functions', 'note', 'at', 'by'])
+        && r.status in ['yes', 'maybe', 'no']
+        && r.people is int && r.people >= 0 && r.people <= 500
+        && (r.status != 'no' || r.people == 0)
+        && r.functions is list && r.functions.size() <= 30
+        && r.note is string && r.note.size() <= 500
+        && r.at is timestamp
+        && r.by in ['guest', 'host'];
+    }
+
+    function validRsvp(d) {
+      return d.keys().hasAll(['guestId', 'guestName', 'invited', 'functions', 'createdAt', 'response'])
+        && d.keys().hasOnly(['guestId', 'guestName', 'invited', 'functions', 'createdAt', 'response'])
+        && d.guestId is string && d.guestId.size() > 0 && d.guestId.size() <= 128
+        && d.guestName is string && d.guestName.size() > 0 && d.guestName.size() <= 200
+        && d.invited is int && d.invited >= 1 && d.invited <= 500
+        && d.functions is list && d.functions.size() <= 30
+        && (d.response == null || validAnswer(d.response));
+    }
+
+    // Someone holding the link answers: only `response` changes, within what
+    // the host offered (headcount, functions), while replies are open.
+    function guestAnswering(eventId) {
+      let before = resource.data;
+      let r = request.resource.data.response;
+      let card = get(/databases/$(database)/documents/events/$(eventId)/public/card).data;
+      return request.resource.data.diff(before).affectedKeys().hasOnly(['response'])
+        && card.rsvpOn == true
+        && (card.get('closesAt', null) == null || request.time.toMillis() < card.closesAt)
+        && validAnswer(r)
+        && r.by == 'guest'
+        && r.at == request.time
+        && r.people <= before.invited
+        && r.functions.hasOnly(before.functions);
+    }
+
     match /events/{eventId} {
       // Reading an id that does not exist is allowed, so the app can check
       // whether an event is there yet.
@@ -158,6 +218,30 @@ service cloud.firestore {
         allow read: if isMember(theEvent());
         allow create, update: if canEdit(theEvent()) && validGuest(request.resource.data);
         allow delete: if canEdit(theEvent());
+      }
+
+      // The event's public card for RSVP pages. Anyone may read it; only the
+      // owner writes it (from Event settings).
+      match /public/{docId} {
+        allow get: if true;
+        allow create, update: if docId == 'card'
+          && isOwner(eventData(eventId))
+          && validCard(request.resource.data);
+        allow delete: if isOwner(eventData(eventId));
+      }
+
+      // One RSVP link per guest; the document id is the token in the link.
+      // A link holder can get this one document (never list them) and answer.
+      // Editors make links, record answers given by phone, and delete links.
+      match /rsvps/{token} {
+        allow get: if true;
+        allow list: if isMember(eventData(eventId));
+        allow create: if token.size() >= 20
+          && canEdit(eventData(eventId))
+          && validRsvp(request.resource.data);
+        allow update: if (canEdit(eventData(eventId)) && validRsvp(request.resource.data))
+          || guestAnswering(eventId);
+        allow delete: if canEdit(eventData(eventId));
       }
     }
 

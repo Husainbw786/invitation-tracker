@@ -5,6 +5,7 @@ import { logout, watchSession } from './lib/auth.js'
 import { canEditEvent, roleIn, subscribeMyEvents, subscribeMyInvites } from './lib/events.js'
 import { wordsFor } from './lib/eventTypes.js'
 import { migrateLegacyList } from './lib/migrate.js'
+import { rsvpRouteFromHash, subscribeRsvps } from './lib/rsvp.js'
 import { takeSharedContact } from './lib/share.js'
 import AuthScreen from './components/AuthScreen.jsx'
 import EventList from './components/EventList.jsx'
@@ -14,6 +15,7 @@ import Dashboard from './components/Dashboard.jsx'
 import GuestList, { EMPTY_FILTERS } from './components/GuestList.jsx'
 import GuestForm from './components/GuestForm.jsx'
 import EventIcon from './components/EventArt.jsx'
+import RsvpPage from './components/RsvpPage.jsx'
 
 // The open event lives in the address (#/e/<id>), so the phone's back button
 // goes from an event back to My Events.
@@ -48,6 +50,9 @@ export default function App() {
   const [invites, setInvites] = useState([])
   const [eventId, setEventId] = useState(eventIdFromHash)
   const [guests, setGuests] = useState([])
+  const [rsvps, setRsvps] = useState({}) // { guestId: rsvp } for the open event
+  // A guest's RSVP link (#/r/<eventId>/<token>): shown without signing in.
+  const [rsvpRoute, setRsvpRoute] = useState(rsvpRouteFromHash)
   const [tab, setTab] = useState('dashboard') // 'dashboard' | 'list'
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [editing, setEditing] = useState(null) // null | 'new' | guest object
@@ -69,7 +74,10 @@ export default function App() {
     takeSharedContact().then((contact) => contact && setPendingShare(contact))
   }, [])
   useEffect(() => {
-    const onHash = () => setEventId(eventIdFromHash())
+    const onHash = () => {
+      setEventId(eventIdFromHash())
+      setRsvpRoute(rsvpRouteFromHash())
+    }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
@@ -138,7 +146,7 @@ export default function App() {
   // On start: land on the last opened event. Any time: leave a link to an
   // event that is gone or no longer shared with this account.
   useEffect(() => {
-    if (!events) return
+    if (!events || rsvpRoute) return
     if (!autoOpened.current) {
       autoOpened.current = true
       const last = recall()
@@ -152,7 +160,7 @@ export default function App() {
       remember(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events, eventId])
+  }, [events, eventId, rsvpRoute])
 
   // Guests of the open event only.
   const openId = event?.id
@@ -160,6 +168,13 @@ export default function App() {
     setGuests([])
     if (!openId) return
     return subscribe(openId, setGuests)
+  }, [openId])
+
+  // RSVP answers of the open event, by guest.
+  useEffect(() => {
+    setRsvps({})
+    if (!openId) return
+    return subscribeRsvps(openId, setRsvps)
   }, [openId])
 
   const canEdit = event && uid ? canEditEvent(event, uid) : false
@@ -189,6 +204,10 @@ export default function App() {
   const cities = useMemo(() => [...new Set(guests.map((f) => f.city.trim()).filter(Boolean))].sort(), [guests])
   const usedTags = useMemo(() => [...new Set(guests.flatMap((f) => f.tags || []))].sort(), [guests])
   const formTags = useMemo(() => [...new Set([...words.tagPresets, ...usedTags])], [words, usedTags])
+
+  if (rsvpRoute) {
+    return <RsvpPage eventId={rsvpRoute.eventId} token={rsvpRoute.token} />
+  }
 
   if (session === undefined) {
     return <div className="blank-page" />
@@ -292,7 +311,9 @@ export default function App() {
             event={event}
             words={words}
             guests={guests}
+            rsvps={rsvps}
             canEdit={canEdit}
+            isOwner={role === 'owner'}
             onDrillDown={(patch) => {
               setFilters({ ...EMPTY_FILTERS, ...patch })
               setTab('list')
@@ -303,6 +324,7 @@ export default function App() {
             event={event}
             words={words}
             guests={guests}
+            rsvps={rsvps}
             cities={cities}
             tags={usedTags}
             filters={filters}
@@ -324,6 +346,7 @@ export default function App() {
           eventId={event.id}
           words={words}
           guest={editing === 'new' ? null : editing}
+          rsvp={editing === 'new' ? null : rsvps[editing.id]}
           initial={editing === 'new' ? draft : null}
           cities={cities}
           tags={formTags}

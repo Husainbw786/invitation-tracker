@@ -1,7 +1,9 @@
-import { ArrowRight, Clock, Confetti, Gift, Users, UsersThree } from '@phosphor-icons/react'
+import { ArrowRight, Clock, Confetti, EnvelopeOpen, Gift, Users, UsersThree } from '@phosphor-icons/react'
 import { NO_CITY, effectiveCount, countBreakdown, tagAttendance } from '../lib/store.js'
 import { plural, stepOf } from '../lib/eventTypes.js'
-import { formatDate } from './EventList.jsx'
+import { daysToGo, formatDate } from '../lib/dates.js'
+import { RSVP_LABELS, cardFor, rsvpSummary } from '../lib/rsvp.js'
+import { updateEvent } from '../lib/events.js'
 
 // The hero's one-line summary of how the invitations are going.
 function headline(words, done, total) {
@@ -13,20 +15,74 @@ function headline(words, done, total) {
   return `${plural(done, words.inviteWord)} ${words.doneVerb}, ${left} to go`
 }
 
-function daysToGo(date) {
-  if (!date) return ''
-  const day = new Date(`${date}T00:00:00`)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const days = Math.round((day - today) / 86400000)
-  if (Number.isNaN(days)) return ''
-  if (days === 0) return 'today'
-  if (days === 1) return 'tomorrow'
-  if (days > 1) return `${days} days to go`
-  return ''
+// Who answered what, and how many people are coming (in total and per function).
+function RsvpOverview({ words, summary, onDrillDown }) {
+  const s = summary
+  const closes = words.rsvpCloses && formatDate(words.rsvpCloses, { day: 'numeric', month: 'short' })
+  const functions = Object.entries(s.byFunction).sort((a, b) => b[1] - a[1])
+  return (
+    <section className="rsvp-overview">
+      <div className="hero-top">
+        <span className="hero-label">RSVP</span>
+        <span className="hero-chip">{!words.rsvpOn ? 'replies off' : closes ? `closes ${closes}` : 'replies open'}</span>
+      </div>
+      <p className="rsvp-big">
+        {s.people}
+        <span className="rsvp-big-label"> {s.people === 1 ? 'person' : 'people'} coming</span>
+      </p>
+      {s.maybePeople > 0 && <p className="hero-foot">and {s.maybePeople} maybe</p>}
+      <div className="rsvp-cells">
+        {['yes', 'maybe', 'no', 'waiting'].map((k) => (
+          <button key={k} className={`rsvp-cell rsvp-${k}`} onClick={() => onDrillDown({ rsvp: k })}>
+            <strong>{s[k]}</strong>
+            <span>{RSVP_LABELS[k]}</span>
+          </button>
+        ))}
+      </div>
+      {s.none > 0 && words.rsvpOn && (
+        <button className="link-btn rsvp-none" onClick={() => onDrillDown({ rsvp: 'none' })}>
+          {plural(s.none, words.one, words.many)} not sent a link yet <ArrowRight size={13} weight="bold" />
+        </button>
+      )}
+      {functions.length > 0 && (
+        <div className="tag-cloud rsvp-functions">
+          {functions.map(([f, n]) => (
+            <span key={f} className="tag-chip small">
+              {f} <span className="tag-count">{n}</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </section>
+  )
 }
 
-export default function Dashboard({ event, words, guests, canEdit, onDrillDown }) {
+// For the owner while RSVP is off: one tap turns it on.
+function RsvpNudge({ event, words }) {
+  async function turnOn() {
+    const rsvp = { on: true, closes: '' }
+    const ok = await updateEvent(event.id, { settings: { ...event.settings, rsvp } }, cardFor(event, rsvp))
+    if (!ok) alert('Could not turn on RSVP. Check your internet connection.')
+  }
+  return (
+    <section className="notice rsvp-nudge">
+      <EnvelopeOpen size={20} weight="duotone" />
+      <div className="notice-body">
+        <p>
+          <strong>Collect RSVPs.</strong> Send each {words.one} a private link to tell you if they are
+          coming and how many. No app or account needed for them.
+        </p>
+        <div className="notice-actions">
+          <button className="link-btn" onClick={turnOn}>
+            Turn on RSVP
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export default function Dashboard({ event, words, guests, rsvps, canEdit, isOwner, onDrillDown }) {
   const isDone = (f) => stepOf(words, f.cardStatus) === words.done.id
   const totalRows = guests.length
   const totalPeople = guests.reduce((sum, f) => sum + effectiveCount(f), 0)
@@ -69,6 +125,9 @@ export default function Dashboard({ event, words, guests, canEdit, onDrillDown }
       byTag[tag] = (byTag[tag] || 0) + tagAttendance(f, tag)
     }
   }
+
+  const rsvp = rsvpSummary(guests, rsvps)
+  const showRsvp = guests.length > 0 && (words.rsvpOn || rsvp.none < guests.length)
 
   const countdown = daysToGo(event.date)
   const where = [formatDate(event.date), event.venue].filter(Boolean).join(' · ')
@@ -116,6 +175,9 @@ export default function Dashboard({ event, words, guests, canEdit, onDrillDown }
         </div>
       ) : (
         <>
+          {showRsvp && <RsvpOverview words={words} summary={rsvp} onDrillDown={onDrillDown} />}
+          {!showRsvp && isOwner && <RsvpNudge event={event} words={words} />}
+
           <section className="tiles">
             <button className={notDone ? 'tile tile-accent' : 'tile'} onClick={() => onDrillDown({ cardStatus: 'not-done' })}>
               <span className="tile-top">

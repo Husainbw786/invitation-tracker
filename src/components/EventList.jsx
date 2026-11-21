@@ -5,13 +5,7 @@ import { ROLE_LABELS, acceptInvite, declineInvite, roleIn } from '../lib/events.
 import { refreshSession, resendVerification } from '../lib/auth.js'
 import InstallButton from './InstallButton.jsx'
 import EventIcon from './EventArt.jsx'
-
-export function formatDate(date) {
-  if (!date) return ''
-  const d = new Date(`${date}T00:00:00`)
-  if (Number.isNaN(d.getTime())) return date
-  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
-}
+import { formatDate } from '../lib/dates.js'
 
 function greeting() {
   const h = new Date().getHours()

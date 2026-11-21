@@ -4,8 +4,9 @@
 // Who may read or change them is decided by the event's members, in
 // firestore.rules.
 
-import { addDoc, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore'
-import { guestsRef } from './events.js'
+import { addDoc, doc, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore'
+import { db } from './firebase.js'
+import { guestsRef, rsvpsRef } from './events.js'
 
 // The fields a guest document may hold. Anything else is dropped on write,
 // and `id` is the document id, never a field.
@@ -107,9 +108,13 @@ export async function updateGuest(eventId, id, patch) {
   }
 }
 
-export async function deleteGuest(eventId, id) {
+/** Deletes a guest and any RSVP links made for them (`rsvpTokens`). */
+export async function deleteGuest(eventId, id, rsvpTokens = []) {
   try {
-    await deleteDoc(doc(guestsRef(eventId), id))
+    const batch = writeBatch(db)
+    batch.delete(doc(guestsRef(eventId), id))
+    for (const token of rsvpTokens) batch.delete(doc(rsvpsRef(eventId), token))
+    await batch.commit()
     return true
   } catch (e) {
     console.error('Could not delete guest', e.code, e.message)
