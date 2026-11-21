@@ -94,7 +94,7 @@ Before events existed, the app was one wedding with two sides, stored in the
 top-level `families` collection. The first time each of those two accounts
 signs in, [`src/lib/migrate.js`](src/lib/migrate.js) copies its side into its
 own event (`events/legacy-husain`, `events/legacy-zainab`) with the same
-wording, order and photos. The old documents are left untouched as a backup.
+wording and order. The old documents are left untouched as a backup.
 Once both lists have moved, delete the "original wedding list" block at the
 end of `firestore.rules` and publish the rules again.
 

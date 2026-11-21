@@ -53,7 +53,7 @@ export async function migrateLegacyList(session) {
         type: 'wedding',
         date: '',
         venue: '',
-        art: 'couple', // their own photos, kept for this event only
+        art: '',
         ownerId: session.uid,
         memberIds: [session.uid],
         members: { [session.uid]: { role: 'owner', name: session.name, email: session.email } },
