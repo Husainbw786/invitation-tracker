@@ -15,6 +15,8 @@ import {
   GenderMale,
   GenderFemale,
   Baby,
+  WhatsappLogo,
+  LinkSimple,
 } from '@phosphor-icons/react'
 import {
   NO_CITY,
@@ -25,8 +27,24 @@ import {
   tagAttendance,
 } from '../lib/store.js'
 import { nextStep, plural, stepLabel, stepOf, stepTone } from '../lib/eventTypes.js'
+import {
+  RSVP_LABELS,
+  inviteMessage,
+  linkFor,
+  replaceLink,
+  rsvpState,
+  rsvpTokens,
+  whatsappUrl,
+} from '../lib/rsvp.js'
 
-export const EMPTY_FILTERS = { search: '', city: null, tag: null, gift: null, cardStatus: null }
+export const EMPTY_FILTERS = { search: '', city: null, tag: null, gift: null, cardStatus: null, rsvp: null }
+
+// "Coming (3)", "Maybe (2)", "Not coming", "No reply yet", "Link not sent".
+function rsvpText(rsvp) {
+  const state = rsvpState(rsvp)
+  if (state === 'yes' || state === 'maybe') return `${RSVP_LABELS[state]} (${rsvp.response.people})`
+  return RSVP_LABELS[state]
+}
 
 // "Ayaan & Sara" -> "ayaan-sara", for file names.
 function slug(text) {
@@ -40,7 +58,7 @@ function slug(text) {
   )
 }
 
-function exportCsv(event, words, rows) {
+function exportCsv(event, words, rows, rsvps, withRsvp) {
   const header = [
     words.One,
     'City',
@@ -53,6 +71,7 @@ function exportCsv(event, words, rows) {
     'Tags',
     ...(words.giftsOn ? [words.gift] : []),
     'Status',
+    ...(withRsvp ? ['RSVP', 'RSVP people', 'RSVP functions', 'RSVP message'] : []),
     'Notes',
   ]
   const lines = rows.map((f) => {
@@ -69,6 +88,14 @@ function exportCsv(event, words, rows) {
       (f.tags || []).join('; '),
       ...(words.giftsOn ? [f.gift ? 'Yes' : 'No'] : []),
       stepLabel(words, f.cardStatus),
+      ...(withRsvp
+        ? [
+            RSVP_LABELS[rsvpState(rsvps[f.id])],
+            rsvps[f.id]?.response ? rsvps[f.id].response.people : '',
+            (rsvps[f.id]?.response?.functions || []).join('; '),
+            rsvps[f.id]?.response?.note || '',
+          ]
+        : []),
       f.notes || '',
     ]
   })
@@ -87,7 +114,7 @@ function exportCsv(event, words, rows) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
 
-function printChecklist(event, words, rows) {
+function printChecklist(event, words, rows, rsvps, withRsvp) {
   const byCity = {}
   for (const f of rows) {
     const city = f.city.trim() || 'No city'
@@ -102,7 +129,7 @@ function printChecklist(event, words, rows) {
       <table>
         <tr><th></th><th>${esc(words.One)}</th><th>${esc(words.headMany)}</th><th>M</th><th>W</th><th>C</th><th>Phone</th>${
           words.giftsOn ? `<th>${esc(words.gift)}</th>` : ''
-        }<th>Status</th></tr>
+        }<th>Status</th>${withRsvp ? '<th>RSVP</th>' : ''}</tr>
         ${list
           .map((f) => {
             const b = countBreakdown(f)
@@ -116,6 +143,7 @@ function printChecklist(event, words, rows) {
               <td>${esc(f.phone || '-')}</td>
               ${words.giftsOn ? `<td>${f.gift ? 'Yes' : 'No'}</td>` : ''}
               <td>${esc(stepLabel(words, f.cardStatus))}</td>
+              ${withRsvp ? `<td>${esc(rsvpText(rsvps[f.id]))}</td>` : ''}
             </tr>`
           })
           .join('')}
@@ -146,8 +174,10 @@ function printChecklist(event, words, rows) {
   w.document.close()
 }
 
-export default function GuestList({ event, words, guests, cities, tags, filters, setFilters, onEdit, canEdit }) {
+export default function GuestList({ event, words, guests, rsvps, cities, tags, filters, setFilters, onEdit, canEdit }) {
   const [expanded, setExpanded] = useState(null)
+  const [copied, setCopied] = useState(null)
+  const withRsvp = words.rsvpOn || Object.keys(rsvps).length > 0
   const statusFilterLabels = {
     ...Object.fromEntries(words.steps.map((s) => [s.id, s.label])),
     'not-done': `Not ${words.doneVerb} yet`,
@@ -169,6 +199,7 @@ export default function GuestList({ event, words, guests, cities, tags, filters,
     const step = stepOf(words, f.cardStatus)
     if (filters.cardStatus === 'not-done' && step === words.done.id) return false
     if (filters.cardStatus && filters.cardStatus !== 'not-done' && step !== filters.cardStatus) return false
+    if (filters.rsvp && rsvpState(rsvps[f.id]) !== filters.rsvp) return false
     return true
   })
 
@@ -178,7 +209,33 @@ export default function GuestList({ event, words, guests, cities, tags, filters,
     setFilters({ ...filters, ...patch })
   }
 
-  const hasActiveFilters = filters.search || filters.city || filters.tag || filters.gift || filters.cardStatus
+  const hasActiveFilters =
+    filters.search || filters.city || filters.tag || filters.gift || filters.cardStatus || filters.rsvp
+
+  // WhatsApp with a ready message and the guest's link (made now if needed).
+  function sendRsvp(f) {
+    const r = rsvps[f.id]
+    const { link, saved } = linkFor(event.id, f, r)
+    saved.then((ok) => ok || alert('Could not save the RSVP link. Check your internet connection and send it again.'))
+    window.open(whatsappUrl(f.phone, inviteMessage(event, f.name, link, Boolean(r && !r.response))), '_blank', 'noopener')
+  }
+
+  async function copyRsvp(f) {
+    const { link, saved } = linkFor(event.id, f, rsvps[f.id])
+    saved.then((ok) => ok || alert('Could not save the RSVP link. Check your internet connection and try again.'))
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(f.id)
+      setTimeout(() => setCopied((id) => (id === f.id ? null : id)), 2500)
+    } catch {
+      prompt('Copy this link:', link)
+    }
+  }
+
+  async function newLink(f) {
+    if (!confirm(`Make a new RSVP link for ${f.name}? The old link stops working. Their answer is kept.`)) return
+    if (!(await replaceLink(event.id, f, rsvps[f.id]))) alert('Could not make a new link. Check your internet connection.')
+  }
 
   return (
     <div className="family-list rise">
@@ -244,6 +301,24 @@ export default function GuestList({ event, words, guests, cities, tags, filters,
               ))}
             </select>
           </span>
+          {withRsvp && (
+            <span className={filters.rsvp ? 'select-pill active' : 'select-pill'}>
+              <span className="select-pill-text">{filters.rsvp ? RSVP_LABELS[filters.rsvp] : 'RSVP'}</span>
+              <CaretDown className="i" size={13} weight="bold" />
+              <select
+                aria-label="Filter by RSVP"
+                value={filters.rsvp || ''}
+                onChange={(e) => set({ rsvp: e.target.value || null })}
+              >
+                <option value="">Any RSVP</option>
+                {Object.entries(RSVP_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </span>
+          )}
           {words.giftsOn && (
             <label className={filters.gift ? 'chip-toggle on' : 'chip-toggle'}>
               <input
@@ -269,10 +344,10 @@ export default function GuestList({ event, words, guests, cities, tags, filters,
           )}
         </div>
         <span className="list-actions">
-          <button className="btn btn-small btn-ghost" onClick={() => printChecklist(event, words, filtered)}>
+          <button className="btn btn-small btn-ghost" onClick={() => printChecklist(event, words, filtered, rsvps, withRsvp)}>
             <Printer size={15} /> Print
           </button>
-          <button className="btn btn-small btn-ghost" onClick={() => exportCsv(event, words, filtered)} title="Export as CSV">
+          <button className="btn btn-small btn-ghost" onClick={() => exportCsv(event, words, filtered, rsvps, withRsvp)} title="Export as CSV">
             <DownloadSimple size={15} /> CSV
           </button>
         </span>
@@ -301,7 +376,12 @@ export default function GuestList({ event, words, guests, cities, tags, filters,
                 <button className="row" aria-expanded={isOpen} onClick={() => setExpanded(isOpen ? null : f.id)}>
                   <span className="row-text">
                     <span className="row-title">{f.name}</span>
-                    <span className="row-meta">{meta.join(' · ')}</span>
+                    <span className="row-meta">
+                      {meta.join(' · ')}
+                      {withRsvp && rsvps[f.id] && (
+                        <span className={`rsvp-tag rsvp-${rsvpState(rsvps[f.id])}`}>{rsvpText(rsvps[f.id])}</span>
+                      )}
+                    </span>
                   </span>
                 </button>
                 {canEdit ? (
@@ -385,6 +465,43 @@ export default function GuestList({ event, words, guests, cities, tags, filters,
                     </p>
                   )}
                   {f.notes && <p className="notes">{f.notes}</p>}
+                  {withRsvp && (
+                    <div className="rsvp-detail">
+                      <p>
+                        <strong>RSVP:</strong>{' '}
+                        <span className={`rsvp-tag rsvp-${rsvpState(rsvps[f.id])}`}>{rsvpText(rsvps[f.id])}</span>
+                        {rsvps[f.id]?.response?.functions?.length > 0 && (
+                          <span className="member-tag-note"> · {rsvps[f.id].response.functions.join(', ')}</span>
+                        )}
+                      </p>
+                      {rsvps[f.id]?.response?.note && <p className="notes">“{rsvps[f.id].response.note}”</p>}
+                      {rsvps[f.id]?.response?.at > 0 && (
+                        <p className="field-hint">
+                          {rsvps[f.id].response.by === 'host' ? 'Noted by a host on ' : 'Answered on '}
+                          {new Date(rsvps[f.id].response.at).toLocaleDateString(undefined, {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                        </p>
+                      )}
+                      {canEdit && words.rsvpOn && (
+                        <div className="detail-actions">
+                          <button className="btn btn-small btn-whatsapp" onClick={() => sendRsvp(f)}>
+                            <WhatsappLogo size={16} weight="fill" />
+                            {!rsvps[f.id] ? 'Send RSVP' : rsvps[f.id].response ? 'Send link again' : 'Remind'}
+                          </button>
+                          <button className="btn btn-small btn-soft" onClick={() => copyRsvp(f)}>
+                            <LinkSimple size={15} /> {copied === f.id ? 'Copied' : 'Copy link'}
+                          </button>
+                          {rsvps[f.id] && (
+                            <button className="btn btn-small btn-ghost" onClick={() => newLink(f)}>
+                              New link
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {canEdit && (
                     <div className="detail-actions">
                       {words.giftsOn && (
@@ -401,7 +518,7 @@ export default function GuestList({ event, words, guests, cities, tags, filters,
                       <button
                         className="btn btn-small btn-danger"
                         onClick={() => {
-                          if (confirm(`Delete "${f.name}" from the list?`)) deleteGuest(event.id, f.id)
+                          if (confirm(`Delete "${f.name}" from the list?`)) deleteGuest(event.id, f.id, rsvpTokens(rsvps[f.id]))
                         }}
                       >
                         <Trash size={14} /> Delete

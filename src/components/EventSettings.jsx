@@ -11,6 +11,7 @@ import {
   setHelperRole,
   updateEvent,
 } from '../lib/events.js'
+import { cardFor } from '../lib/rsvp.js'
 import Modal from './Modal.jsx'
 
 const MAX_STEPS = 5
@@ -189,6 +190,8 @@ export default function EventSettings({ event, session, guestCount, onClose, onG
   const [tagInput, setTagInput] = useState('')
   const [giftsOn, setGiftsOn] = useState(words.giftsOn)
   const [giftLabel, setGiftLabel] = useState(words.gift)
+  const [rsvpOn, setRsvpOn] = useState(words.rsvpOn)
+  const [rsvpCloses, setRsvpCloses] = useState(words.rsvpCloses)
   const [note, setNote] = useState(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -225,12 +228,13 @@ export default function EventSettings({ event, session, guestCount, onClose, onG
     if (steps.some((s) => !s.label.trim())) return setNote({ kind: 'error', text: 'Every step needs a name.' })
     setSaving(true)
     setNote(null)
+    const details = { name: name.trim(), subtitle: subtitle.trim(), type, date, venue: venue.trim() }
+    const rsvp = { on: rsvpOn, closes: rsvpOn ? rsvpCloses : '' }
+    // RSVP pages read a public copy of the event's details; keep it current
+    // while RSVP is on, and tell open links when it is turned off.
+    const card = rsvpOn || words.rsvpOn ? cardFor({ ...event, ...details }, rsvp) : null
     const ok = await updateEvent(event.id, {
-      name: name.trim(),
-      subtitle: subtitle.trim(),
-      type,
-      date,
-      venue: venue.trim(),
+      ...details,
       settings: {
         ...event.settings,
         guestWord,
@@ -239,8 +243,9 @@ export default function EventSettings({ event, session, guestCount, onClose, onG
         inviteWord,
         tagPresets,
         gifts: { on: giftsOn, label: giftLabel.trim() || 'Gift' },
+        rsvp,
       },
-    })
+    }, card)
     setSaving(false)
     setNote(ok ? { kind: 'ok', text: 'Saved.' } : { kind: 'error', text: 'Could not save. Check your internet connection.' })
   }
@@ -448,6 +453,24 @@ export default function EventSettings({ event, session, guestCount, onClose, onG
                 <input value={giftLabel} onChange={(e) => setGiftLabel(e.target.value)} placeholder="Gift" maxLength={30} />
               </label>
             )}
+          </section>
+
+          <section className="settings-block">
+            <h3 className="settings-title">RSVP</h3>
+            <label className="toggle-field">
+              <input type="checkbox" checked={rsvpOn} onChange={(e) => setRsvpOn(e.target.checked)} />
+              <span>Guests can reply with a link</span>
+            </label>
+            {rsvpOn && (
+              <label className="field">
+                <span>Last day to reply (optional)</span>
+                <input type="date" value={rsvpCloses} onChange={(e) => setRsvpCloses(e.target.value)} />
+              </label>
+            )}
+            <p className="field-hint">
+              Each {words.one} gets a private link: open them in the list and tap Send RSVP. They see
+              the event and their own name, never your list.
+            </p>
           </section>
 
           {owner && (

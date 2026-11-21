@@ -10,7 +10,8 @@ import {
   AddressBook,
   CheckCircle,
 } from '@phosphor-icons/react'
-import { addGuest, updateGuest } from '../lib/store.js'
+import { addGuest, effectiveCount, updateGuest } from '../lib/store.js'
+import { recordAnswer, syncRsvp } from '../lib/rsvp.js'
 import { stepOf } from '../lib/eventTypes.js'
 import { canPickContacts, isAndroid, pickContacts } from '../lib/contacts.js'
 
@@ -96,7 +97,9 @@ function toCount(value) {
 // ({ name, phones, members }); `guest` is an existing row being edited.
 // `words` (from wordsFor) decides the labels, the status steps, whether the
 // city is required and whether gifts are tracked.
-export default function GuestForm({ eventId, words, guest: family, initial, cities, tags, onClose }) {
+// `rsvp` is the guest's RSVP link, if one was made: the form can note an
+// answer given by phone, and keeps the link's name and headcount in step.
+export default function GuestForm({ eventId, words, guest: family, rsvp, initial, cities, tags, onClose }) {
   const [name, setName] = useState(family?.name || initial?.name || '')
   const [city, setCity] = useState(family?.city || '')
   const [phone, setPhone] = useState(family?.phone || initial?.phones?.[0] || '')
@@ -124,6 +127,8 @@ export default function GuestForm({ eventId, words, guest: family, initial, citi
   const [gift, setGift] = useState(family?.gift || false)
   const [cardStatus, setCardStatus] = useState(family ? stepOf(words, family.cardStatus) : words.steps[0].id)
   const [notes, setNotes] = useState(family?.notes || '')
+  const [rsvpStatus, setRsvpStatus] = useState(rsvp?.response?.status || '')
+  const [rsvpPeople, setRsvpPeople] = useState(rsvp?.response?.people || '')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   // Picking from phone contacts (Android). `contactNumbers` keeps every number
@@ -284,10 +289,26 @@ export default function GuestForm({ eventId, words, guest: family, initial, citi
     }
     setError('')
     setSaving(true)
-    const ok = family ? await updateGuest(eventId, family.id, data) : await addGuest(eventId, data)
-    setSaving(false)
+    const saved = family
+      ? (await updateGuest(eventId, family.id, data)) && { ...family, ...data }
+      : await addGuest(eventId, data)
     // On failure keep the form open so nothing that was typed is lost.
-    if (!ok) return setError('Could not save. Please try again.')
+    if (!saved) {
+      setSaving(false)
+      return setError('Could not save. Please try again.')
+    }
+
+    const before = rsvp?.response
+    const people = toCount(rsvpPeople) || effectiveCount(saved)
+    const answerChanged =
+      rsvpStatus !== (before?.status || '') ||
+      (rsvpStatus && rsvpStatus !== 'no' && people !== before?.people)
+    const rsvpOk =
+      answerChanged && (rsvpStatus || before)
+        ? await recordAnswer(eventId, saved, rsvp, rsvpStatus, people)
+        : await syncRsvp(eventId, saved, rsvp)
+    setSaving(false)
+    if (!rsvpOk) return setError(`The ${words.one} was saved, but not the RSVP. Please try again.`)
     onClose()
   }
 
@@ -576,6 +597,33 @@ export default function GuestForm({ eventId, words, guest: family, initial, citi
             </select>
           </label>
         </div>
+
+        {(words.rsvpOn || rsvp) && (
+          <div className="field-row">
+            <label className="field">
+              <span>RSVP answer</span>
+              <select value={rsvpStatus} onChange={(e) => setRsvpStatus(e.target.value)}>
+                <option value="">No answer yet</option>
+                <option value="yes">Coming</option>
+                <option value="maybe">Maybe</option>
+                <option value="no">Not coming</option>
+              </select>
+            </label>
+            {(rsvpStatus === 'yes' || rsvpStatus === 'maybe') && (
+              <label className="field">
+                <span>People coming</span>
+                <input
+                  type="number"
+                  min="1"
+                  inputMode="numeric"
+                  value={rsvpPeople}
+                  onChange={(e) => setRsvpPeople(e.target.value)}
+                  placeholder={String(members.length || guestTotal || 1)}
+                />
+              </label>
+            )}
+          </div>
+        )}
 
         <label className="field">
           <span>Notes (optional)</span>

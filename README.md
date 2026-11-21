@@ -28,6 +28,12 @@ out, and share the list with family who help.
   verified already. The **Share** button sends them the link.
 - **Rows** — name, city, phone, members (or just men / women / children
   counts), tags with per-member or per-tag attendance, gift, status, notes.
+- **RSVP** — turn it on per event, then send each row a private link on
+  WhatsApp (or copy it). Guests answer without an account: coming / maybe /
+  not coming, how many people, which functions, and a message. Answers show
+  live in the list and on the dashboard (people coming in total and per
+  function). Hosts can note answers given by phone, set a last day to reply,
+  and make a new link if one went to the wrong person.
 - **Dashboard** — invitations done vs to go, headcount, gifts, a card per city
   with progress, and headcount per tag. Everything is clickable to filter.
 - **Export & print** — CSV export and a print-friendly per-city checklist.
@@ -66,11 +72,19 @@ events/{eventId}                name, subtitle, type, date, venue, settings,
                                 invitedEmails, inviteRoles { email: role }
 events/{eventId}/guests/{id}    one row: name, city, phone, members, counts,
                                 tags, gift, cardStatus, notes, createdAt
+events/{eventId}/public/card    what RSVP pages show: name, date, venue, host,
+                                whether replies are open (owner writes it)
+events/{eventId}/rsvps/{token}  one RSVP link: guestId, guestName, invited,
+                                functions, response { status, people, ... }
 ```
+
+An RSVP link looks like `/#/r/{eventId}/{token}`. The long random token is the
+secret: with it a guest can read only that one RSVP and the event's public
+card, and answer while replies are open. Never the guest list.
 
 The security rules in [`firestore.rules`](firestore.rules) decide who can do
 what: owners change everything, editors add / edit / delete rows, viewers only
-read, and nobody else sees anything. Publish them with
+read, RSVP links reach only their own answer, and nobody else sees anything. Publish them with
 `npm run rules:deploy` (after `npx firebase-tools login`), or paste the file
 into **Firestore Database → Rules** and click **Publish**.
 

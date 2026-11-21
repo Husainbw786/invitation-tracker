@@ -234,6 +234,8 @@ export function wordsFor(event) {
     gifts: `${giftLabel}s`,
     cityRequired: s.cityRequired !== false,
     tagPresets: Array.isArray(s.tagPresets) ? s.tagPresets : [],
+    rsvpOn: Boolean(s.rsvp?.on), // guests can answer through a link (rsvp.js)
+    rsvpCloses: s.rsvp?.closes || '', // last day to answer, 'YYYY-MM-DD' or ''
   }
 }
 
