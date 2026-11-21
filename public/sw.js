@@ -4,7 +4,8 @@
 // Only this site's own files are cached. Firebase requests go to Google's
 // servers and are never touched here, so the guest list is always live.
 
-const CACHE = 'invites-v1'
+// Bump when cached files must be fetched fresh (v2: new logo).
+const CACHE = 'invites-v2'
 
 // A contact shared into the app from the phone's Contacts app arrives here as
 // a POST from the manifest's share_target. Keep the file(s) in the cache and
