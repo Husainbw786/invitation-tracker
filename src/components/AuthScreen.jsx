@@ -17,6 +17,7 @@ import {
 import { resetPassword, signIn, signInWithGoogle, signUp } from '../lib/auth.js'
 import InstallButton from './InstallButton.jsx'
 import EventIcon from './EventArt.jsx'
+import Logo from './Logo.jsx'
 
 const COPY = {
   signin: { title: 'Welcome back', sub: 'Sign in to see your guest lists.', button: 'Sign in' },
@@ -231,9 +232,7 @@ export default function AuthScreen({ onSession }) {
         <div className="pitch-inner">
           <header className="pitch-top">
             <div className="brand-row">
-              <span className="brand-mark" aria-hidden="true">
-                <EnvelopeSimple weight="bold" />
-              </span>
+              <Logo className="brand-mark" />
               <span className="brand-name">Invitations</span>
             </div>
             <button type="button" className="btn btn-small btn-primary pitch-signin" onClick={() => open('signin')}>
