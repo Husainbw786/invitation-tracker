@@ -1933,21 +1933,7 @@ textarea {
   height: 14px;
 }
 
-/* ---------- Sign in ---------- */
-
-.auth-page {
-  display: flex;
-  justify-content: center;
-  min-height: 100dvh;
-  padding: calc(20px + env(safe-area-inset-top)) var(--gutter) calc(28px + env(safe-area-inset-bottom));
-}
-
-.auth-wrap {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 440px;
-}
+/* ---------- Front page (signed out) and sign-in ---------- */
 
 .brand-row {
   display: flex;
@@ -1978,7 +1964,6 @@ textarea {
 }
 
 .kicker {
-  margin-top: 32px;
   color: var(--accent-text);
   font-size: 11.5px;
   font-weight: 800;
@@ -1986,22 +1971,292 @@ textarea {
   text-transform: uppercase;
 }
 
-.auth-hero {
-  margin-top: 10px;
-  font-size: 34px;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+.btn-dark {
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--bg);
 }
 
-.auth-lead {
+@media (hover: hover) {
+  .btn-dark:hover:not(:disabled) {
+    border-color: var(--fg);
+    opacity: 0.9;
+  }
+}
+
+.landing {
+  min-height: 100dvh;
+}
+
+.pitch-inner {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 var(--gutter) calc(40px + env(safe-area-inset-bottom));
+}
+
+/* Stays on top while the page scrolls, so Sign in is always one tap away. */
+.pitch-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: calc(12px + env(safe-area-inset-top)) var(--gutter) 12px;
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  backdrop-filter: saturate(1.4) blur(14px);
+}
+
+.pitch-signin {
+  border-radius: 999px;
+}
+
+.pitch-hero {
+  padding-top: 28px;
+}
+
+.pitch-title {
   margin-top: 12px;
-  color: var(--muted);
-  font-size: 15.5px;
-  line-height: 1.55;
+  font-size: 36px;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
 }
 
+.pitch-lead {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.pitch-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.pitch-ctas .btn {
+  flex: 1 1 160px;
+}
+
+/* A still picture of the app. */
+.preview {
+  margin-top: 36px;
+  padding: 18px 18px 4px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow:
+    0 1px 2px rgba(41, 38, 27, 0.04),
+    0 16px 40px rgba(41, 38, 27, 0.08);
+}
+
+.preview-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.preview-head .hero-chip {
+  background: var(--accent-soft);
+}
+
+.preview-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.preview-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--hero);
+}
+
+.preview-label {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.preview-num {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.preview-num .hero-of {
+  font-size: 18px;
+}
+
+.preview-unit {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.preview-stat .progress {
+  height: 6px;
+  margin-top: 8px;
+}
+
+.preview-functions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  margin-top: 6px;
+  white-space: nowrap;
+  color: var(--accent-text);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.preview .rows {
+  margin-top: 6px;
+}
+
+.preview .rows > li:last-child {
+  border-bottom: 0;
+}
+
+.preview .row {
+  gap: 10px;
+  min-height: 60px;
+  padding: 12px 0;
+}
+
+.preview .row-title {
+  font-size: 15px;
+}
+
+.preview .row-meta {
+  font-size: 12.5px;
+}
+
+.preview .status {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 11.5px;
+}
+
+.pitch-section {
+  margin-top: 52px;
+}
+
+.pitch-h2 {
+  margin-top: 8px;
+  font-size: 28px;
+  letter-spacing: -0.025em;
+}
+
+.features,
+.how {
+  display: grid;
+  gap: 20px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feature,
+.how li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.feature strong,
+.how strong {
+  display: block;
+  font-size: 15.5px;
+}
+
+.feature-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--accent-text);
+}
+
+.feature-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.feature-text {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.how-num {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.pitch-final {
+  margin-top: 52px;
+  padding: 24px 20px;
+  border-radius: 24px;
+  background: var(--hero);
+}
+
+.pitch-final .pitch-h2 {
+  margin-top: 0;
+}
+
+.pitch-final .pitch-lead {
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.pitch-final .btn {
+  margin-top: 18px;
+}
+
+.pitch-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 32px;
+  color: var(--faint);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* The sign-in form: a sheet from the bottom on phones, a column on wide screens. */
 .auth-card {
-  margin-top: 28px;
   padding: 24px 20px;
   border: 1px solid var(--border);
   border-radius: 24px;
@@ -2050,14 +2305,70 @@ textarea {
   text-align: center;
 }
 
-.auth-side {
-  display: flex;
-  flex-direction: column;
+.auth-panel {
+  display: none;
+}
+
+.auth-panel.open {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 50;
+  display: block;
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top));
+  padding: 10px var(--gutter) calc(24px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 28px 28px 0 0;
+  background: var(--card);
+  box-shadow: var(--shadow-pop);
+  animation: sheet-up 0.3s var(--ease) both;
+}
+
+.auth-panel.open::before {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 5px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.auth-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  background: var(--scrim);
+  animation: fade 0.2s ease both;
+}
+
+@media (max-width: 899px) {
+  body:has(.auth-panel.open) {
+    overflow: hidden;
+  }
+}
+
+.auth-panel .auth-card {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.auth-panel .auth-title {
+  padding-right: 48px;
+}
+
+.sheet-close {
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 
 .auth-install {
-  align-self: center;
-  margin-top: 14px;
+  display: flex;
+  margin: 14px auto 0;
 }
 
 /* ---------- RSVP ---------- */
@@ -2421,30 +2732,84 @@ textarea {
 }
 
 @media (min-width: 900px) {
-  .auth-page {
-    align-items: center;
-  }
-
-  .auth-wrap {
+  .landing {
     display: grid;
-    grid-template-columns: 1.1fr 1fr;
-    align-items: center;
-    gap: 72px;
-    max-width: 1040px;
+    grid-template-columns: minmax(0, 1fr) minmax(420px, 40%);
   }
 
-  .auth-hero {
+  .pitch {
+    background: var(--hero);
+  }
+
+  .pitch-inner {
+    padding: 0 56px 64px;
+  }
+
+  .pitch-top {
+    position: static;
+    margin: 0;
+    padding: 40px 0 0;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  /* The form is always on screen here, so no buttons to open it. */
+  .pitch-signin,
+  .pitch-ctas,
+  .pitch-final .btn,
+  .auth-scrim,
+  .sheet-close {
+    display: none;
+  }
+
+  .pitch-hero {
+    padding-top: 56px;
+  }
+
+  .pitch-title {
     font-size: 52px;
   }
 
-  .auth-lead {
-    max-width: 440px;
+  .pitch-lead {
     font-size: 17px;
   }
 
-  .auth-card {
-    margin-top: 0;
-    padding: 32px 28px;
+  .features {
+    grid-template-columns: 1fr 1fr;
+    gap: 26px 28px;
+  }
+
+  .auth-panel,
+  .auth-panel.open {
+    position: sticky;
+    inset: auto;
+    top: 0;
+    z-index: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100dvh;
+    max-height: none;
+    padding: 40px;
+    border-radius: 0;
+    background: var(--bg);
+    box-shadow: none;
+    animation: none;
+  }
+
+  .auth-panel.open::before {
+    display: none;
+  }
+
+  .auth-panel .auth-card {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .auth-panel .auth-title {
+    padding-right: 0;
+    font-size: 32px;
   }
 }
 
