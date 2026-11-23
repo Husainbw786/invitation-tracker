@@ -6,6 +6,10 @@ import '@fontsource-variable/manrope'
 import '@fontsource-variable/source-serif-4/opsz.css'
 import './lib/install.js' // must listen for Chrome's install event early
 import './styles.css'
+import { applyTheme, getTheme } from './lib/theme.js'
+
+// Also sets the browser bar colour for a saved Light or Dark choice.
+applyTheme(getTheme())
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

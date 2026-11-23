@@ -8,6 +8,14 @@
 
     <!-- Installable app (Chrome / Android / desktop, and iPhone home screen) -->
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- A Light or Dark choice saved in Settings, applied before the page is
+         drawn so it never flashes the other look (see src/lib/theme.js). -->
+    <script>
+      try {
+        var t = localStorage.getItem('invitations:theme')
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t)
+      } catch (e) {}
+    </script>
     <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#262624" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg?v=2" />
