@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { CalendarBlank, CaretRight, EnvelopeSimple, Plus, SignOut, Sparkle } from '@phosphor-icons/react'
+import { CalendarBlank, CaretRight, EnvelopeSimple, GearSix, Plus, Sparkle } from '@phosphor-icons/react'
 import { eventType } from '../lib/eventTypes.js'
 import { ROLE_LABELS, acceptInvite, declineInvite, roleIn } from '../lib/events.js'
 import { refreshSession, resendVerification } from '../lib/auth.js'
 import InstallButton from './InstallButton.jsx'
+import SettingsSheet from './SettingsSheet.jsx'
 import EventIcon from './EventArt.jsx'
 import { formatDate } from '../lib/dates.js'
 
@@ -100,6 +101,7 @@ export default function EventList({ session, events, invites, pendingShare, onOp
   const firstName = session.name.split(' ')[0]
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
   const count = events?.length || 0
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (
     <div className="app">
@@ -109,8 +111,8 @@ export default function EventList({ session, events, invites, pendingShare, onOp
         </span>
         <div className="top-actions">
           <InstallButton className="icon-btn" labelClassName="sr-only" />
-          <button className="icon-btn" onClick={onLogout} title="Sign out" aria-label="Sign out">
-            <SignOut />
+          <button className="icon-btn" onClick={() => setSettingsOpen(true)} title="Settings" aria-label="Settings">
+            <GearSix />
           </button>
         </div>
       </header>
@@ -193,6 +195,10 @@ export default function EventList({ session, events, invites, pendingShare, onOp
           )}
         </section>
       </main>
+
+      {settingsOpen && (
+        <SettingsSheet session={session} onClose={() => setSettingsOpen(false)} onLogout={onLogout} />
+      )}
 
       {events?.length > 0 && (
         <button className="fab" onClick={onCreate}>

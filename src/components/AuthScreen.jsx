@@ -18,6 +18,7 @@ import { resetPassword, signIn, signInWithGoogle, signUp } from '../lib/auth.js'
 import InstallButton from './InstallButton.jsx'
 import EventIcon from './EventArt.jsx'
 import Logo from './Logo.jsx'
+import ThemeSwitch from './ThemeSwitch.jsx'
 
 const COPY = {
   signin: { title: 'Welcome back', sub: 'Sign in to see your guest lists.', button: 'Sign in' },
@@ -305,6 +306,7 @@ export default function AuthScreen({ onSession }) {
             <ShieldCheck size={16} weight="duotone" />
             Your lists are private. Only you and the people you add can see them.
           </footer>
+          <ThemeSwitch className="pitch-theme" />
         </div>
       </main>
 
