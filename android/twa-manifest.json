@@ -21,8 +21,8 @@
     "path": "../../invitations-upload.keystore",
     "alias": "upload"
   },
-  "appVersionName": "1.0.0",
-  "appVersionCode": 1,
+  "appVersionName": "1.0.1",
+  "appVersionCode": 2,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://invitations.husainbw.in/manifest.webmanifest",
@@ -49,8 +49,7 @@
           "name": "contact",
           "accept": [
             "text/vcard",
-            "text/x-vcard",
-            ".vcf"
+            "text/x-vcard"
           ]
         }
       ]
@@ -68,5 +67,5 @@
   ],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
-  "appVersion": "1.0.0"
+  "appVersion": "1.0.1"
 }

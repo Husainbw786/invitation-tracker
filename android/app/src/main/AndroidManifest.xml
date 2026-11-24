@@ -154,8 +154,6 @@
                     
                         <data android:mimeType="text/x-vcard" />
                     
-                        <data android:mimeType=".vcf" />
-                    
                 </intent-filter>
             
 
