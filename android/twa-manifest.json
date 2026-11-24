@@ -57,7 +57,11 @@
   },
   "fingerprints": [
     {
-      "name": "Play app signing key (quantum-ready, from 24 Nov 2026)",
+      "name": "Play app signing key, classical (from 24 Nov 2026)",
+      "value": "63:D4:41:6E:FB:20:49:E8:95:4F:5B:6A:64:6A:8B:3C:C6:B8:DE:14:D9:A0:2C:10:3B:8E:A0:77:5C:C0:DD:91"
+    },
+    {
+      "name": "Play app signing key, post-quantum (from 24 Nov 2026)",
       "value": "61:55:C5:F0:1A:F4:64:0B:31:95:FB:11:E0:AE:2E:50:44:BD:DB:60:CB:54:47:40:F9:38:60:5D:85:3B:EB:06"
     },
     {
