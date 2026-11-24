@@ -1,0 +1,52 @@
+{
+  "packageId": "in.husainbw.invitations",
+  "host": "invitations.husainbw.in",
+  "name": "Invitations",
+  "launcherName": "Invitations",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#FAF9F5",
+  "themeColorDark": "#262624",
+  "navigationColor": "#FAF9F5",
+  "navigationColorDark": "#262624",
+  "navigationDividerColor": "#E3DFD3",
+  "navigationDividerColorDark": "#3D3C37",
+  "backgroundColor": "#FAF9F5",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://invitations.husainbw.in/icons/icon-512.png?v=2",
+  "maskableIconUrl": "https://invitations.husainbw.in/icons/icon-maskable-512.png?v=2",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "../../invitations-upload.keystore",
+    "alias": "upload"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://invitations.husainbw.in/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": { "enabled": false },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://invitations.husainbw.in/",
+  "minSdkVersion": 24,
+  "shareTarget": {
+    "action": "/share-contact",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [{ "name": "contact", "accept": ["text/vcard", "text/x-vcard", ".vcf"] }]
+    }
+  },
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "appVersion": "1.0.0"
+}

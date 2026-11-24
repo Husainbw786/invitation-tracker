@@ -304,7 +304,10 @@ export default function AuthScreen({ onSession }) {
 
           <footer className="pitch-foot">
             <ShieldCheck size={16} weight="duotone" />
-            Your lists are private. Only you and the people you add can see them.
+            <span>
+              Your lists are private. Only you and the people you add can see them.{' '}
+              <a href="/privacy.html">Privacy policy</a>
+            </span>
           </footer>
           <ThemeSwitch className="pitch-theme" />
         </div>

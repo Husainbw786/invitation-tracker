@@ -4,8 +4,9 @@
 // Only this site's own files are cached. Firebase requests go to Google's
 // servers and are never touched here, so the guest list is always live.
 
-// Bump when cached files must be fetched fresh (v2: new logo).
-const CACHE = 'invites-v2'
+// Bump when cached files must be fetched fresh (v2: new logo, v3: Play Store
+// build, privacy pages).
+const CACHE = 'invites-v3'
 
 // A contact shared into the app from the phone's Contacts app arrives here as
 // a POST from the manifest's share_target. Keep the file(s) in the cache and
@@ -63,11 +64,15 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          const copy = res.clone()
-          caches.open(CACHE).then((c) => c.put('/', copy))
+          // Only the app's own page is kept for offline use; the privacy and
+          // delete-account pages must never replace it.
+          if (url.pathname === '/' && res.ok) {
+            const copy = res.clone()
+            caches.open(CACHE).then((c) => c.put('/', copy))
+          }
           return res
         })
-        .catch(() => caches.match('/'))
+        .catch(() => (url.pathname === '/' ? caches.match('/') : caches.match(request)))
     )
     return
   }

@@ -2902,3 +2902,36 @@ textarea {
     transition: none !important;
   }
 }
+
+/* Settings: privacy link and deleting the account */
+.settings-link {
+  align-self: center;
+  padding: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+.settings-actions + .danger-block {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.delete-list {
+  margin: 0 0 14px;
+  padding-left: 20px;
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.delete-list li + li {
+  margin-top: 6px;
+}
+.delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pitch-foot a {
+  color: inherit;
+  text-decoration: underline;
+}

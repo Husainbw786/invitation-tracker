@@ -1,0 +1,73 @@
+/* The privacy and delete-account pages: plain pages in the app's paper and
+   terracotta, readable without the app's scripts. */
+:root {
+  color-scheme: light dark;
+  --bg: #faf9f5;
+  --fg: #29261b;
+  --muted: #6f6b5e;
+  --accent: #c15f3c;
+  --primary: #d97757;
+  --border: #e3dfd3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #262624;
+    --fg: #eceae3;
+    --muted: #a39f93;
+    --accent: #e08a6c;
+    --border: #3d3c37;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+h1 {
+  margin: 8px 0 4px;
+  font: 500 32px/1.2 Georgia, 'Times New Roman', serif;
+}
+h2 {
+  margin: 32px 0 8px;
+  font: 500 21px/1.3 Georgia, 'Times New Roman', serif;
+}
+p,
+li {
+  margin: 0 0 10px;
+}
+ul,
+ol {
+  padding-left: 22px;
+}
+a {
+  color: var(--accent);
+}
+.back a {
+  color: var(--muted);
+  font-weight: 600;
+  text-decoration: none;
+}
+.updated,
+.small {
+  color: var(--muted);
+  font-size: 14px;
+}
+.button {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
