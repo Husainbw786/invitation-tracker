@@ -28,7 +28,9 @@
   "webManifestUrl": "https://invitations.husainbw.in/manifest.webmanifest",
   "fallbackType": "customtabs",
   "features": {},
-  "alphaDependencies": { "enabled": false },
+  "alphaDependencies": {
+    "enabled": false
+  },
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
@@ -42,10 +44,28 @@
       "title": "title",
       "text": "text",
       "url": "url",
-      "files": [{ "name": "contact", "accept": ["text/vcard", "text/x-vcard", ".vcf"] }]
+      "files": [
+        {
+          "name": "contact",
+          "accept": [
+            "text/vcard",
+            "text/x-vcard",
+            ".vcf"
+          ]
+        }
+      ]
     }
   },
-  "fingerprints": [],
+  "fingerprints": [
+    {
+      "name": "Play app signing key",
+      "value": "99:A9:D6:FC:AC:7E:FF:7C:97:6B:80:32:B9:82:24:59:8C:6C:BF:3E:F5:48:60:76:AC:A7:AF:B0:BB:FB:20:77"
+    },
+    {
+      "name": "Upload key",
+      "value": "32:23:21:00:45:94:76:3D:20:3D:A5:22:99:30:62:F3:CB:BC:6C:3D:51:E9:31:A3:39:70:4F:6D:F4:9E:DA:A9"
+    }
+  ],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
   "appVersion": "1.0.0"
