@@ -197,7 +197,13 @@ export default function EventList({ session, events, invites, pendingShare, onOp
       </main>
 
       {settingsOpen && (
-        <SettingsSheet session={session} onClose={() => setSettingsOpen(false)} onLogout={onLogout} />
+        <SettingsSheet
+          session={session}
+          events={events}
+          invites={invites}
+          onClose={() => setSettingsOpen(false)}
+          onLogout={onLogout}
+        />
       )}
 
       {events?.length > 0 && (

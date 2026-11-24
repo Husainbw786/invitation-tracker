@@ -5,3 +5,14 @@ dist/
 .env.*.local
 .DS_Store
 *.log
+
+# Android (Play Store) build: outputs and keys never go in git
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/*.apk
+android/*.aab
+android/*.idsig
+*.keystore
+*.jks
