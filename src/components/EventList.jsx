@@ -5,9 +5,9 @@ import { ROLE_LABELS, acceptInvite, declineInvite, roleIn } from '../lib/events.
 import { refreshSession, resendVerification } from '../lib/auth.js'
 import InstallButton from './InstallButton.jsx'
 import SettingsSheet from './SettingsSheet.jsx'
-import EventIcon from './EventArt.jsx'
+import EventIcon, { toneOf } from './EventArt.jsx'
 import Logo from './Logo.jsx'
-import { formatDate } from '../lib/dates.js'
+import { daysToGo, formatDate } from '../lib/dates.js'
 
 function greeting() {
   const h = new Date().getHours()
@@ -182,14 +182,20 @@ export default function EventList({ session, events, invites, pendingShare, onOp
               {events.map((e) => {
                 const role = roleIn(e, session.uid)
                 const meta = [formatDate(e.date), e.venue].filter(Boolean)
+                const countdown = daysToGo(e.date)
                 return (
                   <li key={e.id}>
                     <button className="row" onClick={() => onOpen(e.id)}>
                       <EventIcon event={e} />
                       <span className="row-text">
-                        <span className="event-kind">{eventType(e).label}</span>
+                        <span className="event-kind" data-tone={toneOf(e)}>{eventType(e).label}</span>
                         <span className="row-title">{e.name}</span>
-                        {meta.length > 0 && <span className="row-meta metadata">{meta.map((part, i) => <span key={i}>{part}</span>)}</span>}
+                        {meta.length > 0 && (
+                          <span className="row-meta metadata">
+                            {meta.map((part, i) => <span key={i}>{part}</span>)}
+                            {countdown && <span className="event-countdown">{countdown}</span>}
+                          </span>
+                        )}
                       </span>
                       {role !== 'owner' && <span className="badge">{ROLE_LABELS[role] || 'Helper'}</span>}
                       <CaretRight className="row-chevron" weight="bold" />

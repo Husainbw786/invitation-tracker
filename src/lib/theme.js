@@ -1,4 +1,5 @@
-// Light or dark look. 'auto' follows the phone's setting; 'light' and 'dark'
+// Light or dark look. 'auto' (the default) follows the phone's setting, so
+// the page always matches the Android status bar, which follows the phone too; 'light' and 'dark'
 // are saved on this device and set data-theme on <html>, which styles.css
 // reads. index.html applies a saved choice before the page is drawn, so
 // there is no flash of the wrong colours.
@@ -9,16 +10,16 @@ const KEY = 'invitations:theme'
 export const THEMES = ['auto', 'light', 'dark']
 
 // The browser bar colour for each look (same as --bg in styles.css).
-const BAR = { light: '#eeebe7', dark: '#292625' }
+const BAR = { light: '#f8f4f1', dark: '#181210' }
 
 const listeners = new Set()
 
 export function getTheme() {
   try {
     const saved = localStorage.getItem(KEY)
-    return THEMES.includes(saved) ? saved : 'light'
+    return THEMES.includes(saved) ? saved : 'auto'
   } catch {
-    return 'light'
+    return 'auto'
   }
 }
 

@@ -1,42 +1,83 @@
+/* Coral, the Hallmark theme this app follows (usehallmark.com/themes/coral).
+   The palette lives here, outside the bundle, so the privacy and
+   delete-account pages share it. Values are Coral's own, in oklch.
+   Dark is our addition (Coral is light only): the same warm stock, lit low,
+   with the board as the ground. */
 @font-face {
   font-family: 'General Sans';
-  src: url('./fonts/general-sans-variable.woff2') format('woff2');
+  src: url('/fonts/general-sans-variable.woff2') format('woff2');
   font-weight: 200 700;
   font-display: swap;
 }
+
 :root {
-  --coral-desk: #eeebe7;
-  --coral-stock: #fffdfa;
-  --coral-envelope: #e4d9c7;
-  --coral-blush: #f0b4a5;
-  --coral-post-ink: #632f27;
-  --coral-print: #282523;
-  --coral-pencil: #625b57;
-  --coral-seam: #d2cac3;
-  --coral-ink: #a64331;
-  --coral-lift: rgb(64 48 39 / .19);
-  --coral-edge: rgb(255 255 255 / .4);
+  /* paper and stock */
+  --coral-paper: oklch(97% 0.006 55);
+  --coral-paper-2: oklch(94.5% 0.007 55);
+  --coral-paper-3: oklch(91.5% 0.009 55);
+  --coral-desk: oklch(94.3% 0.008 64);
+  --coral-stock: oklch(98.8% 0.0045 80);
+  --coral-envelope: oklch(95.6% 0.008 72);
+  /* ink */
+  --coral-print: oklch(23% 0.012 38);
+  --coral-ink-2: oklch(29% 0.013 40);
+  --coral-pencil: oklch(47% 0.013 45);
+  --coral-seam: oklch(87% 0.009 55);
+  --coral-seam-2: oklch(81% 0.011 55);
+  /* the board: the one ink band, and the primary control */
+  --coral-board: oklch(22% 0.011 40);
+  --coral-board-type: oklch(96.5% 0.006 70);
+  /* coral itself: only the pressed settled state, link underlines and focus */
+  --coral-ink: oklch(54% 0.165 29);
+  --coral-paid: oklch(55.5% 0.15 33);
+  --coral-soft: oklch(74% 0.125 30);
+  /* one light, from the left */
+  --coral-shade: 32% 0.03 50;
+  --coral-lit: 100% 0.005 80;
+  --coral-deep: 7% 0.01 40;
 }
 
 :root[data-theme="dark"] {
-  --coral-desk: #292625;
-  --coral-stock: #373331;
-  --coral-envelope: #50463c;
-  --coral-blush: #b37564;
-  --coral-print: #faf6f2;
-  --coral-pencil: #d4c8c1;
-  --coral-seam: #655c56;
-  --coral-ink: #f4a18c;
+  --coral-paper: oklch(19% 0.01 42);
+  --coral-paper-2: oklch(23.5% 0.011 42);
+  --coral-paper-3: oklch(28% 0.012 42);
+  --coral-desk: oklch(17% 0.01 42);
+  --coral-stock: oklch(25.5% 0.011 45);
+  --coral-envelope: oklch(30% 0.013 55);
+  --coral-print: oklch(95% 0.006 70);
+  --coral-ink-2: oklch(88% 0.008 65);
+  --coral-pencil: oklch(72% 0.011 55);
+  --coral-seam: oklch(33% 0.012 45);
+  --coral-seam-2: oklch(40% 0.013 45);
+  --coral-board: oklch(93% 0.007 70);
+  --coral-board-type: oklch(21% 0.011 40);
+  --coral-ink: oklch(74% 0.125 30);
+  --coral-paid: oklch(74% 0.125 32);
+  --coral-soft: oklch(74% 0.125 30);
+  --coral-shade: 4% 0.01 40;
+  --coral-lit: 100% 0.005 80;
+  --coral-deep: 2% 0.01 40;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] {
-    --coral-desk: #292625;
-    --coral-stock: #373331;
-    --coral-envelope: #50463c;
-    --coral-blush: #b37564;
-    --coral-print: #faf6f2;
-    --coral-pencil: #d4c8c1;
-    --coral-seam: #655c56;
-    --coral-ink: #f4a18c;
+    --coral-paper: oklch(19% 0.01 42);
+    --coral-paper-2: oklch(23.5% 0.011 42);
+    --coral-paper-3: oklch(28% 0.012 42);
+    --coral-desk: oklch(17% 0.01 42);
+    --coral-stock: oklch(25.5% 0.011 45);
+    --coral-envelope: oklch(30% 0.013 55);
+    --coral-print: oklch(95% 0.006 70);
+    --coral-ink-2: oklch(88% 0.008 65);
+    --coral-pencil: oklch(72% 0.011 55);
+    --coral-seam: oklch(33% 0.012 45);
+    --coral-seam-2: oklch(40% 0.013 45);
+    --coral-board: oklch(93% 0.007 70);
+    --coral-board-type: oklch(21% 0.011 40);
+    --coral-ink: oklch(74% 0.125 30);
+    --coral-paid: oklch(74% 0.125 32);
+    --coral-soft: oklch(74% 0.125 30);
+    --coral-shade: 4% 0.01 40;
+    --coral-lit: 100% 0.005 80;
+    --coral-deep: 2% 0.01 40;
   }
 }

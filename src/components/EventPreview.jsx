@@ -12,19 +12,19 @@ const event = {
   settings: { ...defaultSettings('wedding'), rsvp: { on: true } },
 }
 const guests = [
-  { id: 'shaikh', name: 'Shaikh Family', city: 'Mumbai', memberCount: 4, cardStatus: 'delivered' },
-  { id: 'khan', name: 'Khan Family', city: 'Pune', memberCount: 3, cardStatus: 'written' },
-  { id: 'mehta', name: 'Mehta Family', city: 'Surat', memberCount: 5, cardStatus: 'pending' },
-  { id: 'patel', name: 'Patel Family', city: 'Pune', memberCount: 2, cardStatus: 'delivered' },
+  { id: 'baghwala', name: 'Baghwala Family', city: 'Mumbai', memberCount: 4, cardStatus: 'delivered' },
+  { id: 'lightwala', name: 'Lightwala Family', city: 'Pune', memberCount: 3, cardStatus: 'written' },
+  { id: 'sharma', name: 'Sharma Family', city: 'Surat', memberCount: 5, cardStatus: 'pending' },
+  { id: 'malik', name: 'Malik Family', city: 'Pune', memberCount: 2, cardStatus: 'delivered' },
 ].map(guest => ({ ...guest, phone: '', notes: '', members: [], tags: ['Reception'] }))
 const initialReplies = {
-  shaikh: { response: { status: 'yes', people: 4, functions: ['Reception'] } },
-  khan: { response: { status: 'maybe', people: 3, functions: [] } },
-  mehta: { response: null },
-  patel: { response: null },
+  baghwala: { response: { status: 'yes', people: 4, functions: ['Reception'] } },
+  lightwala: { response: { status: 'maybe', people: 3, functions: [] } },
+  sharma: { response: null },
+  malik: { response: null },
 }
 const words = wordsFor(event)
-const invitedFamily = guests.find(guest => guest.id === 'patel')
+const invitedFamily = guests.find(guest => guest.id === 'malik')
 const guestCount = guests.reduce((sum, guest) => sum + guest.memberCount, 0)
 
 function SampleInvitation({ response, onReply }) {
@@ -44,7 +44,7 @@ function SampleInvitation({ response, onReply }) {
       <p className="invite-place">{event.venue} reception</p>
       {response && !editing ? (
         <div className="sample-confirmation">
-          <p role="status"><span className="ink-stamp">Reply received</span> {RSVP_LABELS[response.status]}{response.people > 0 && ` · ${response.people} ${response.people === 1 ? 'guest' : 'guests'}`}</p>
+          <p role="status"><span className="ink-stamp">Reply received</span> {RSVP_LABELS[response.status]}{response.people > 0 && `, ${response.people} ${response.people === 1 ? 'guest' : 'guests'}`}</p>
           <button type="button" className="link-btn" onClick={() => setEditing(true)}>Change reply</button>
         </div>
       ) : (
@@ -80,6 +80,7 @@ export default function EventPreview({ children }) {
 
   return (
     <>
+      <div className="pitch-hero-band">
       <section className="pitch-inner pitch-hero" aria-label="Invitations">
         {children}
         <section className="coral-desk" aria-label="Interactive sample event stationery">
@@ -113,7 +114,7 @@ export default function EventPreview({ children }) {
                 setReplies(prev => ({ ...prev, [invitedFamily.id]: { response } }))} />
             )}
             {side === 'host' && (
-              <button type="button" className="address-slip" onClick={() => setSide('guest')} aria-label="Open the Patel Family sample invitation">
+              <button type="button" className="address-slip" onClick={() => setSide('guest')} aria-label="Open the Malik Family sample invitation">
                 <span className="slip-address"><small>To</small><strong>{invitedFamily.name}</strong><span>{invitedFamily.city}</span></span>
                 <span className="slip-postage" aria-hidden="true"><FlowerTulip weight="duotone" /></span>
               </button>
@@ -128,6 +129,7 @@ export default function EventPreview({ children }) {
           </div>
         </section>
       </section>
+      </div>
       <section id="event-preview" aria-label="Interactive sample event" className="preview-stage">
         <div className="preview-shell">
           <header className="preview-head">
@@ -137,8 +139,10 @@ export default function EventPreview({ children }) {
           </header>
           <div className="preview-body">
             <nav className="preview-nav" aria-label="Sample event views">
-              <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}><UsersThree /> Guest list</button>
-              <button type="button" aria-pressed={view === 'overview'} onClick={() => setView('overview')}><ChartBar /> Overview</button>
+              <span className="preview-nav-groove">
+                <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}><UsersThree /> Guest list</button>
+                <button type="button" aria-pressed={view === 'overview'} onClick={() => setView('overview')}><ChartBar /> Overview</button>
+              </span>
             </nav>
             <div className="preview-content">
               <h3>{view === 'list' ? 'Guest list' : 'Event overview'}</h3>

@@ -1,9 +1,9 @@
 /* The privacy and delete-account pages: plain pages in the app's paper and
-   terracotta, readable without the app's scripts. */
+   Coral ink, readable without the app's scripts. */
 @import url("/coral-theme.css");
 :root {
   color-scheme: light;
-  --bg: var(--coral-desk);
+  --bg: var(--coral-paper);
   --fg: var(--coral-print);
   --muted: var(--coral-pencil);
   --accent: var(--coral-ink);
@@ -29,12 +29,12 @@ main {
 }
 h1 {
   margin: 8px 0 4px;
-  font: 550 clamp(34px, 6vw, 48px)/1.06 'General Sans', system-ui, sans-serif;
-  letter-spacing: -.04em;
+  font: 600 clamp(34px, 6vw, 48px)/1.04 'General Sans', system-ui, sans-serif;
+  letter-spacing: -0.03em;
 }
 h2 {
   margin: 32px 0 8px;
-  font: 550 22px/1.2 'General Sans', system-ui, sans-serif;
+  font: 600 22px/1.2 'General Sans', system-ui, sans-serif;
 }
 p,
 li {
@@ -45,7 +45,9 @@ ol {
   padding-left: 22px;
 }
 a {
-  color: var(--accent);
+  color: var(--fg);
+  text-decoration-color: var(--accent);
+  text-underline-offset: 0.2em;
 }
 .back a {
   color: var(--muted);
@@ -61,9 +63,9 @@ a {
   display: inline-block;
   margin-top: 4px;
   padding: 12px 20px;
-  border-radius: 6px;
-  background: var(--fg);
-  color: var(--bg);
-  font-weight: 700;
+  border-radius: 8px;
+  background: var(--coral-board);
+  color: var(--coral-board-type);
+  font-weight: 500;
   text-decoration: none;
 }

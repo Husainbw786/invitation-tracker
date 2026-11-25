@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './lib/install.js' // must listen for Chrome's install event early
 import './styles.css'
+import '@fontsource/geist-mono/400.css'
 import './coral-app.css'
 import { applyTheme, getTheme } from './lib/theme.js'
 

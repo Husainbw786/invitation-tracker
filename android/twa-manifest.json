@@ -5,13 +5,13 @@
   "launcherName": "Invitations",
   "display": "standalone",
   "orientation": "portrait",
-  "themeColor": "#eeebe7",
-  "themeColorDark": "#292625",
-  "navigationColor": "#eeebe7",
-  "navigationColorDark": "#292625",
-  "navigationDividerColor": "#d2cac3",
-  "navigationDividerColorDark": "#655c56",
-  "backgroundColor": "#eeebe7",
+  "themeColor": "#f8f4f1",
+  "themeColorDark": "#181210",
+  "navigationColor": "#f8f4f1",
+  "navigationColorDark": "#181210",
+  "navigationDividerColor": "#d9d3cf",
+  "navigationDividerColorDark": "#332c29",
+  "backgroundColor": "#f8f4f1",
   "enableNotifications": false,
   "startUrl": "/",
   "iconUrl": "https://invitations.husainbw.in/icons/icon-512.png?v=2",
@@ -21,8 +21,8 @@
     "path": "../../invitations-upload.keystore",
     "alias": "upload"
   },
-  "appVersionName": "1.0.1",
-  "appVersionCode": 2,
+  "appVersionName": "1.0.2",
+  "appVersionCode": 3,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://invitations.husainbw.in/manifest.webmanifest",
@@ -75,5 +75,5 @@
   ],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
-  "appVersion": "1.0.1"
+  "appVersion": "1.0.2"
 }

@@ -42,6 +42,7 @@ export default function EventCreate({ session, onClose, onCreated }) {
                 aria-checked={type === id}
                 aria-label={et.label}
                 className={type === id ? 'type-option selected' : 'type-option'}
+                data-tone={id}
                 onClick={() => setType(id)}
               >
                 <Icon size={22} weight="duotone" />
