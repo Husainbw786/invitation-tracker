@@ -1436,25 +1436,6 @@ textarea {
   font-weight: 600;
 }
 
-.theme-switch .segment {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2xs);
-}
-
-.theme-switch + .field-hint {
-  margin: var(--space-xs) 0 0;
-}
-
-.pitch-theme {
-  max-width: 320px;
-}
-
-.pitch-theme .segment {
-  min-height: 44px;
-}
-
 .account-row {
   display: flex;
   align-items: center;
