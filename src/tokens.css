@@ -82,6 +82,7 @@
   --press-groove: inset 1px 1.5px 3px oklch(var(--coral-deep) / 0.6), inset -1px -1px 0 oklch(var(--coral-lit) / 0.05), 0 0 0 0.5px oklch(var(--coral-lit) / 0.08);
   --edge-board: inset 0 1px 0 oklch(var(--coral-lit) / 0.7), 0 0 0 0.5px oklch(var(--coral-deep) / 0.5), 0 1px 0 oklch(var(--coral-deep) / 0.7);
   --sheen-stock: linear-gradient(100deg, oklch(var(--coral-lit) / 0.04), oklch(var(--coral-lit) / 0) 55%);
+  --tex-desk: none;
   --groove: var(--coral-desk);
 }
 @media (prefers-color-scheme: dark) {
@@ -95,6 +96,7 @@
     --press-groove: inset 1px 1.5px 3px oklch(var(--coral-deep) / 0.6), inset -1px -1px 0 oklch(var(--coral-lit) / 0.05), 0 0 0 0.5px oklch(var(--coral-lit) / 0.08);
     --edge-board: inset 0 1px 0 oklch(var(--coral-lit) / 0.7), 0 0 0 0.5px oklch(var(--coral-deep) / 0.5), 0 1px 0 oklch(var(--coral-deep) / 0.7);
     --sheen-stock: linear-gradient(100deg, oklch(var(--coral-lit) / 0.04), oklch(var(--coral-lit) / 0) 55%);
+  --tex-desk: none;
   --groove: var(--coral-desk);
   }
 }
