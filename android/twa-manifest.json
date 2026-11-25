@@ -4,14 +4,13 @@
   "name": "Invitations",
   "launcherName": "Invitations",
   "display": "standalone",
-  "orientation": "portrait",
-  "themeColor": "#f8f4f1",
+  "themeColor": "#F8F4F1",
   "themeColorDark": "#181210",
-  "navigationColor": "#f8f4f1",
+  "navigationColor": "#F8F4F1",
   "navigationColorDark": "#181210",
-  "navigationDividerColor": "#d9d3cf",
-  "navigationDividerColorDark": "#332c29",
-  "backgroundColor": "#f8f4f1",
+  "navigationDividerColor": "#D9D3CF",
+  "navigationDividerColorDark": "#332C29",
+  "backgroundColor": "#F8F4F1",
   "enableNotifications": false,
   "startUrl": "/",
   "iconUrl": "https://invitations.husainbw.in/icons/icon-512.png?v=2",
@@ -21,8 +20,8 @@
     "path": "../../invitations-upload.keystore",
     "alias": "upload"
   },
-  "appVersionName": "1.0.2",
-  "appVersionCode": 3,
+  "appVersionName": "new theme",
+  "appVersionCode": 4,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://invitations.husainbw.in/manifest.webmanifest",
@@ -55,6 +54,7 @@
       ]
     }
   },
+  "orientation": "portrait",
   "fingerprints": [
     {
       "name": "Play app signing key, classical (from 24 Nov 2026)",
@@ -75,5 +75,6 @@
   ],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
-  "appVersion": "1.0.2"
+  "displayOverride": [],
+  "appVersion": "new theme"
 }
