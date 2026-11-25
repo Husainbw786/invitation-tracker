@@ -20,8 +20,8 @@
     "path": "../../invitations-upload.keystore",
     "alias": "upload"
   },
-  "appVersionName": "new theme",
-  "appVersionCode": 4,
+  "appVersionName": "1.0.3",
+  "appVersionCode": 5,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://invitations.husainbw.in/manifest.webmanifest",
@@ -76,5 +76,5 @@
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
   "displayOverride": [],
-  "appVersion": "new theme"
+  "appVersion": "1.0.3"
 }

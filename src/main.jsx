@@ -5,6 +5,11 @@ import './lib/install.js' // must listen for Chrome's install event early
 import './styles.css'
 import '@fontsource/geist-mono/400.css'
 import './coral-app.css'
+import { rememberNativeApp } from './lib/nativeContacts.js'
+
+// Before the app reads the address: note an Android build with the contacts
+// screen, and tidy its flag out of the address bar.
+rememberNativeApp()
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

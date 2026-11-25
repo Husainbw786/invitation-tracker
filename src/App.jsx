@@ -3,7 +3,7 @@ import { CaretLeft, GearSix, Plus, X } from '@phosphor-icons/react'
 import { subscribe } from './lib/store.js'
 import { logout, watchSession } from './lib/auth.js'
 import { canEditEvent, roleIn, subscribeMyEvents, subscribeMyInvites } from './lib/events.js'
-import { wordsFor } from './lib/eventTypes.js'
+import { plural, wordsFor } from './lib/eventTypes.js'
 import { migrateLegacyList } from './lib/migrate.js'
 import { rsvpRouteFromHash, subscribeRsvps } from './lib/rsvp.js'
 import { takeSharedContact } from './lib/share.js'
@@ -14,6 +14,8 @@ import EventSettings from './components/EventSettings.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import GuestList, { EMPTY_FILTERS } from './components/GuestList.jsx'
 import GuestForm from './components/GuestForm.jsx'
+import BulkAddSheet from './components/BulkAddSheet.jsx'
+import { takeNativeContacts } from './lib/nativeContacts.js'
 import EventIcon from './components/EventArt.jsx'
 import RsvpPage from './components/RsvpPage.jsx'
 
@@ -63,6 +65,10 @@ export default function App() {
   // an event the user can edit is open, then opened as a pre-filled new row.
   const [pendingShare, setPendingShare] = useState(null)
   const [draft, setDraft] = useState(null)
+  // Several people ticked on the Android app's contacts screen: held like a
+  // shared contact, then offered as one "add them all" sheet.
+  const [pendingBulk, setPendingBulk] = useState(null)
+  const [bulk, setBulk] = useState(null)
   // Whether the open event was reached from My Events in this visit, so the
   // back arrow can use the browser's back (and the phone's back button stays
   // in step) instead of stacking a new entry.
@@ -72,6 +78,19 @@ export default function App() {
   useEffect(() => watchSession(setSession), [])
   useEffect(() => {
     takeSharedContact().then((contact) => contact && setPendingShare(contact))
+  }, [])
+  // People picked on the Android contacts screen come back in the address:
+  // one opens the usual form, several open the add-them-all sheet.
+  useEffect(() => {
+    const take = () => {
+      const people = takeNativeContacts()
+      if (!people) return
+      if (people.length === 1) setPendingShare({ ...people[0], members: [], source: 'contacts' })
+      else setPendingBulk(people)
+    }
+    take()
+    window.addEventListener('hashchange', take)
+    return () => window.removeEventListener('hashchange', take)
   }, [])
   useEffect(() => {
     const onHash = () => {
@@ -201,6 +220,26 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingShare, events, event, canEdit])
 
+  // Same for several picked people: into the open event, or the only one.
+  useEffect(() => {
+    if (!pendingBulk || !events) return
+    if (event && canEdit) {
+      setBulk(pendingBulk)
+      setPendingBulk(null)
+      setEditing(null)
+      return
+    }
+    if (!event) {
+      const editable = events.filter((e) => canEditEvent(e, uid))
+      if (editable.length === 1) openEvent(editable[0].id)
+      else if (editable.length === 0) {
+        setPendingBulk(null)
+        setNotice('Create an event first, then pick the contacts again.')
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingBulk, events, event, canEdit])
+
   const cities = useMemo(() => [...new Set(guests.map((f) => f.city.trim()).filter(Boolean))].sort(), [guests])
   const usedTags = useMemo(() => [...new Set(guests.flatMap((f) => f.tags || []))].sort(), [guests])
   const formTags = useMemo(() => [...new Set([...words.tagPresets, ...usedTags])], [words, usedTags])
@@ -246,7 +285,7 @@ export default function App() {
           session={session}
           events={events}
           invites={invites}
-          pendingShare={pendingShare}
+          pendingShare={pendingShare || (pendingBulk && { name: `${pendingBulk.length} contacts` })}
           onOpen={(id) => openEvent(id)}
           onCreate={() => setCreating(true)}
           onLogout={handleLogout}
@@ -354,6 +393,23 @@ export default function App() {
           onClose={() => {
             setEditing(null)
             setDraft(null)
+          }}
+        />
+      )}
+
+      {bulk && canEdit && (
+        <BulkAddSheet
+          eventId={event.id}
+          words={words}
+          people={bulk}
+          guests={guests}
+          cities={cities}
+          tags={formTags}
+          onClose={() => setBulk(null)}
+          onDone={(n) => {
+            setBulk(null)
+            setTab('list')
+            setNotice(`Added ${plural(n, words.one, words.many)} from your contacts.`)
           }}
         />
       )}

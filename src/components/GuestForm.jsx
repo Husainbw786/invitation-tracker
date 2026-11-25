@@ -14,6 +14,7 @@ import { addGuest, effectiveCount, updateGuest } from '../lib/store.js'
 import { recordAnswer, syncRsvp } from '../lib/rsvp.js'
 import { stepOf } from '../lib/eventTypes.js'
 import { canPickContacts, isAndroid, pickContacts } from '../lib/contacts.js'
+import { hasNativeContacts, openNativeContacts } from '../lib/nativeContacts.js'
 
 // The route that always works: share the person from the Contacts app.
 const SHARE_TIP =
@@ -42,10 +43,11 @@ function emptyNote(wentHidden) {
   return { kind: 'error', text: wentHidden ? CONTACT_MESSAGES.hidden : CONTACT_MESSAGES.none }
 }
 
-// Note for a form opened by a contact shared from the Contacts app.
+// Note for a form opened by a contact shared from the Contacts app, or picked
+// on the Android app's contacts screen (source 'contacts').
 function sharedNote(initial) {
   const taken = [initial.name, initial.phones?.[0]].filter(Boolean).join(', ')
-  let text = `Taken from the shared contact: ${taken}.`
+  let text = `${initial.source === 'contacts' ? 'Taken from your contacts' : 'Taken from the shared contact'}: ${taken}.`
   if (!initial.phones?.length) text += ' It has no phone number saved.'
   if (initial.members?.length) text += ` Members added: ${initial.members.join(', ')}.`
   return { kind: 'ok', text, undoName: '' }
@@ -139,7 +141,12 @@ export default function GuestForm({ eventId, words, guest: family, rsvp, initial
   // The button is shown wherever the picker exists, and on every Android
   // browser so a user without it is told to use Chrome instead of seeing
   // nothing at all.
-  const showContactButtons = canPickContacts() || isAndroid()
+  // In the Android app, the head-of-family button opens the app's own contacts
+  // screen instead (the page reloads when it comes back, so only for a new
+  // family, and not for members, where typed details would be lost).
+  const nativeContacts = hasNativeContacts()
+  const showContactButtons = !nativeContacts && (canPickContacts() || isAndroid())
+  const showHeadContacts = nativeContacts ? !family : showContactButtons
   // Where the last mouse press started, so dragging a text selection out of
   // an input and releasing on the backdrop doesn't close the form.
   const pressedOnBackdrop = useRef(false)
@@ -165,6 +172,7 @@ export default function GuestForm({ eventId, words, guest: family, rsvp, initial
   // on top of the first is refused by the browser itself (the "busy" note).
   async function pickHeadOfFamily() {
     setPhoneNote(null)
+    if (nativeContacts) return openNativeContacts()
     const { contacts, error: pickError, detail, wentHidden } = await pickContacts()
     if (pickError) return setPhoneNote(failNote(pickError, detail))
     const c = contacts[0]
@@ -366,7 +374,7 @@ export default function GuestForm({ eventId, words, guest: family, rsvp, initial
               inputMode="tel"
               aria-label="Phone"
             />
-            {showContactButtons && (
+            {showHeadContacts && (
               <button
                 type="button"
                 className="btn btn-small"

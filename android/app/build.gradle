@@ -57,8 +57,8 @@ android {
         applicationId "in.husainbw.invitations"
         minSdkVersion 24
         targetSdkVersion 36
-        versionCode 4
-        versionName "new theme"
+        versionCode 5
+        versionName "1.0.3"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -156,6 +156,10 @@ android {
     buildTypes {
         release {
             minifyEnabled true
+        }
+        // A test build installs beside the Play Store app (a different id).
+        debug {
+            applicationIdSuffix ".debug"
         }
     }
     compileOptions {
