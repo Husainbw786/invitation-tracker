@@ -26,13 +26,13 @@ def twaManifest = [
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'Invitations', // The application name.
     launcherName: 'Invitations', // The name shown on the Android Launcher.
-    themeColor: '#FAF9F5', // The color used for the status bar.
-    themeColorDark: '#262624', // The color used for the dark status bar.
-    navigationColor: '#FAF9F5', // The color used for the navigation bar.
-    navigationColorDark: '#262624', // The color used for the dark navbar.
-    navigationDividerColor: '#E3DFD3', // The navbar divider color.
-    navigationDividerColorDark: '#3D3C37', // The dark navbar divider color.
-    backgroundColor: '#FAF9F5', // The color used for the splash screen background.
+    themeColor: '#eeebe7', // The color used for the status bar.
+    themeColorDark: '#292625', // The color used for the dark status bar.
+    navigationColor: '#eeebe7', // The color used for the navigation bar.
+    navigationColorDark: '#292625', // The color used for the dark navbar.
+    navigationDividerColor: '#d2cac3', // The navbar divider color.
+    navigationDividerColorDark: '#655c56', // The dark navbar divider color.
+    backgroundColor: '#eeebe7', // The color used for the splash screen background.
     enableNotifications: false, // Set to true to enable notification delegation.
     // Every shortcut must include the following fields:
     // - name: String that will show up in the shortcut.

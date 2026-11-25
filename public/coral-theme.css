@@ -1,0 +1,42 @@
+@font-face {
+  font-family: 'General Sans';
+  src: url('./fonts/general-sans-variable.woff2') format('woff2');
+  font-weight: 200 700;
+  font-display: swap;
+}
+:root {
+  --coral-desk: #eeebe7;
+  --coral-stock: #fffdfa;
+  --coral-envelope: #e4d9c7;
+  --coral-blush: #f0b4a5;
+  --coral-post-ink: #632f27;
+  --coral-print: #282523;
+  --coral-pencil: #625b57;
+  --coral-seam: #d2cac3;
+  --coral-ink: #a64331;
+  --coral-lift: rgb(64 48 39 / .19);
+  --coral-edge: rgb(255 255 255 / .4);
+}
+
+:root[data-theme="dark"] {
+  --coral-desk: #292625;
+  --coral-stock: #373331;
+  --coral-envelope: #50463c;
+  --coral-blush: #b37564;
+  --coral-print: #faf6f2;
+  --coral-pencil: #d4c8c1;
+  --coral-seam: #655c56;
+  --coral-ink: #f4a18c;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+    --coral-desk: #292625;
+    --coral-stock: #373331;
+    --coral-envelope: #50463c;
+    --coral-blush: #b37564;
+    --coral-print: #faf6f2;
+    --coral-pencil: #d4c8c1;
+    --coral-seam: #655c56;
+    --coral-ink: #f4a18c;
+  }
+}

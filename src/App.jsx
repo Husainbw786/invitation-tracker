@@ -321,6 +321,7 @@ export default function App() {
           />
         ) : (
           <GuestList
+            registerTitle="Guest register"
             event={event}
             words={words}
             guests={guests}

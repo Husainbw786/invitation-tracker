@@ -122,7 +122,7 @@ export const EVENT_TYPES = {
     tags: [],
     gifts: { on: true, label: 'Gift' },
     cityRequired: true,
-    namePlaceholder: "e.g. Baby Ali's Aqiqah",
+    namePlaceholder: "e.g. Our Baby's Aqiqah",
     subtitlePlaceholder: "e.g. Father's side",
   }),
   housewarming: type('Housewarming', House, 'home sweet home', {

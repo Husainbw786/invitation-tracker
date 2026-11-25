@@ -9,23 +9,22 @@ const KEY = 'invitations:theme'
 export const THEMES = ['auto', 'light', 'dark']
 
 // The browser bar colour for each look (same as --bg in styles.css).
-const BAR = { light: '#faf9f5', dark: '#262624' }
+const BAR = { light: '#eeebe7', dark: '#292625' }
 
 const listeners = new Set()
 
 export function getTheme() {
   try {
     const saved = localStorage.getItem(KEY)
-    return THEMES.includes(saved) ? saved : 'auto'
+    return THEMES.includes(saved) ? saved : 'light'
   } catch {
-    return 'auto'
+    return 'light'
   }
 }
 
 export function applyTheme(theme) {
   const root = document.documentElement
-  if (theme === 'light' || theme === 'dark') root.setAttribute('data-theme', theme)
-  else root.removeAttribute('data-theme')
+  root.dataset.theme = theme
   // index.html has one theme-color per phone setting; a fixed choice wins
   // over both, and Auto puts each back.
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
@@ -36,8 +35,7 @@ export function applyTheme(theme) {
 
 export function setTheme(theme) {
   try {
-    if (theme === 'auto') localStorage.removeItem(KEY)
-    else localStorage.setItem(KEY, theme)
+    localStorage.setItem(KEY, theme)
   } catch {
     // private mode: the choice lasts until the page is closed
   }

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -7,17 +7,13 @@
     <meta name="description" content="Guest lists for weddings, birthdays and every other event: track invitations, guests and gifts, and share the list with family who help." />
 
     <!-- Installable app (Chrome / Android / desktop, and iPhone home screen) -->
+    <link rel="stylesheet" href="/coral-theme.css" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- A Light or Dark choice saved in Settings, applied before the page is
          drawn so it never flashes the other look (see src/lib/theme.js). -->
-    <script>
-      try {
-        var t = localStorage.getItem('invitations:theme')
-        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t)
-      } catch (e) {}
-    </script>
-    <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#262624" media="(prefers-color-scheme: dark)" />
+    <script src="/appearance.js"></script>
+    <meta name="theme-color" content="#eeebe7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#292625" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg?v=2" />
     <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48.png?v=2" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=2" />

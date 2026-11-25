@@ -2,8 +2,8 @@ import { CircleHalf, Moon, Sun } from '@phosphor-icons/react'
 import { useTheme } from '../lib/theme.js'
 
 const OPTIONS = [
-  ['auto', 'Auto', CircleHalf],
   ['light', 'Light', Sun],
+  ['auto', 'Auto', CircleHalf],
   ['dark', 'Dark', Moon],
 ]
 

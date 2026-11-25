@@ -174,7 +174,7 @@ function printChecklist(event, words, rows, rsvps, withRsvp) {
   w.document.close()
 }
 
-export default function GuestList({ event, words, guests, rsvps, cities, tags, filters, setFilters, onEdit, canEdit }) {
+export default function GuestList({ event, words, guests, rsvps, cities, tags, filters, setFilters, registerTitle, onEdit, canEdit }) {
   const [expanded, setExpanded] = useState(null)
   const [copied, setCopied] = useState(null)
   const withRsvp = words.rsvpOn || Object.keys(rsvps).length > 0
@@ -238,7 +238,8 @@ export default function GuestList({ event, words, guests, rsvps, cities, tags, f
   }
 
   return (
-    <div className="family-list rise">
+    <div className="family-list">
+      {registerTitle && <h2 className="register-title">{registerTitle}</h2>}
       <div className="filter-bar">
         <label className="search-wrap">
           <MagnifyingGlass className="i" size={18} />
@@ -246,7 +247,8 @@ export default function GuestList({ event, words, guests, rsvps, cities, tags, f
             type="search"
             className="search-input"
             aria-label={`Search ${words.many}`}
-            placeholder={`Search ${words.one}, member, city or phone`}
+            placeholder={`Search ${words.many}`}
+            title="Search by name, member, city or phone"
             value={filters.search}
             onChange={(e) => set({ search: e.target.value })}
           />
@@ -334,8 +336,9 @@ export default function GuestList({ event, words, guests, rsvps, cities, tags, f
 
       <div className="list-meta">
         <div className="list-summary">
-          <span className="list-count">
-            {plural(filtered.length, words.one, words.many)} · {plural(totalPeople, words.headOne, words.headMany)}
+          <span className="list-count metadata">
+            <span>{plural(filtered.length, words.one, words.many)}</span>
+            <span>{plural(totalPeople, words.headOne, words.headMany)}</span>
           </span>
           {hasActiveFilters && (
             <button className="link-btn" onClick={() => setFilters(EMPTY_FILTERS)}>
@@ -374,10 +377,11 @@ export default function GuestList({ event, words, guests, rsvps, cities, tags, f
             <li key={f.id} className={isOpen ? 'family-card open' : 'family-card'}>
               <div className="guest-line">
                 <button className="row" aria-expanded={isOpen} onClick={() => setExpanded(isOpen ? null : f.id)}>
+                  <span className="guest-initial" aria-hidden="true">{Array.from(f.name.trim())[0]?.toUpperCase()}</span>
                   <span className="row-text">
                     <span className="row-title">{f.name}</span>
-                    <span className="row-meta">
-                      {meta.join(' · ')}
+                    <span className="row-meta metadata">
+                      {meta.map((part, i) => <span key={i}>{part}</span>)}
                       {withRsvp && rsvps[f.id] && (
                         <span className={`rsvp-tag rsvp-${rsvpState(rsvps[f.id])}`}>{rsvpText(rsvps[f.id])}</span>
                       )}
@@ -458,7 +462,7 @@ export default function GuestList({ event, words, guests, rsvps, cities, tags, f
                         return (
                           <span key={t} className="tag-chip small">
                             {t}
-                            {att !== count ? ` · ${att}` : ''}
+                            {att !== count ? ` (${att})` : ''}
                           </span>
                         )
                       })}
@@ -471,7 +475,7 @@ export default function GuestList({ event, words, guests, rsvps, cities, tags, f
                         <strong>RSVP:</strong>{' '}
                         <span className={`rsvp-tag rsvp-${rsvpState(rsvps[f.id])}`}>{rsvpText(rsvps[f.id])}</span>
                         {rsvps[f.id]?.response?.functions?.length > 0 && (
-                          <span className="member-tag-note"> · {rsvps[f.id].response.functions.join(', ')}</span>
+                          <span className="member-tag-note"> {rsvps[f.id].response.functions.join(', ')}</span>
                         )}
                       </p>
                       {rsvps[f.id]?.response?.note && <p className="notes">“{rsvps[f.id].response.note}”</p>}
