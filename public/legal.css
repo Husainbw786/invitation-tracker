@@ -9,10 +9,6 @@
   --accent: var(--coral-ink);
   --border: var(--coral-seam);
 }
-:root[data-theme="dark"] { color-scheme: dark; }
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="auto"] { color-scheme: dark; }
-}
 * {
   box-sizing: border-box;
 }

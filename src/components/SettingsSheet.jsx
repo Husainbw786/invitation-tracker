@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { SignOut, Trash, Warning } from '@phosphor-icons/react'
 import Modal from './Modal.jsx'
-import ThemeSwitch from './ThemeSwitch.jsx'
 import InstallButton from './InstallButton.jsx'
 import { deleteMyAccount, deletionPlan } from '../lib/account.js'
 
@@ -101,12 +100,6 @@ export default function SettingsSheet({ session, events, invites, onClose, onLog
             <span className="person-email">{session.email}</span>
           </span>
         </div>
-      </section>
-
-      <section className="settings-block">
-        <h3 className="settings-title">Appearance</h3>
-        <ThemeSwitch />
-        <p className="field-hint">Auto follows your phone&apos;s light or dark setting.</p>
       </section>
 
       <div className="settings-actions">

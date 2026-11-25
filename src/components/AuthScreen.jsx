@@ -4,7 +4,6 @@ import { resetPassword, signIn, signInWithGoogle, signUp } from '../lib/auth.js'
 import InstallButton from './InstallButton.jsx'
 import Logo from './Logo.jsx'
 import EventPreview from './EventPreview.jsx'
-import ThemeSwitch from './ThemeSwitch.jsx'
 import '../coral-landing.css'
 
 const COPY = {
@@ -148,7 +147,6 @@ export default function AuthScreen({ onSession }) {
 
       <footer className="pitch-inner pitch-foot">
         <p><ShieldCheck size={18} aria-hidden="true" /> <span>Your lists are private. Only you and the people you add can see them. <a href="/privacy.html">Privacy policy</a></span></p>
-        <ThemeSwitch className="pitch-theme" />
       </footer>
 
       <dialog

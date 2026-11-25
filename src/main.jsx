@@ -5,11 +5,6 @@ import './lib/install.js' // must listen for Chrome's install event early
 import './styles.css'
 import '@fontsource/geist-mono/400.css'
 import './coral-app.css'
-import { applyTheme, getTheme } from './lib/theme.js'
-
-// Also sets the browser bar colour for a saved Light or Dark choice.
-applyTheme(getTheme())
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
