@@ -35,6 +35,8 @@
   --coral-shade: 32% 0.03 50;
   --coral-lit: 100% 0.005 80;
   --coral-deep: 7% 0.01 40;
+  /* the daylight from the left on the desk */
+  --coral-daylight: oklch(99% 0.006 80 / 0.7);
 }
 
 :root[data-theme="dark"] {
@@ -57,6 +59,7 @@
   --coral-shade: 4% 0.01 40;
   --coral-lit: 100% 0.005 80;
   --coral-deep: 2% 0.01 40;
+  --coral-daylight: oklch(26% 0.012 50 / 0.55);
 }
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] {
@@ -79,5 +82,6 @@
     --coral-shade: 4% 0.01 40;
     --coral-lit: 100% 0.005 80;
     --coral-deep: 2% 0.01 40;
+    --coral-daylight: oklch(26% 0.012 50 / 0.55);
   }
 }

@@ -44,7 +44,7 @@
   padding-top: 72px;
   background-color: var(--coral-desk);
   background-image:
-    radial-gradient(90% 120% at 0% 30%, oklch(99% 0.006 80 / 0.7), transparent 62%),
+    radial-gradient(90% 120% at 0% 30%, var(--coral-daylight), transparent 62%),
     linear-gradient(90deg, oklch(var(--coral-shade) / 0) 50%, oklch(var(--coral-shade) / 0.05)),
     var(--tex-desk);
   background-size: 100% 100%, 100% 100%, 320px 320px;
