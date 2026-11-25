@@ -16,7 +16,7 @@ function Summary({ response }) {
   if (response.status !== 'no' && response.functions.length) parts.push(response.functions.join(', '))
   return (
     <>
-      <p className="rsvp-summary">{parts.join(' · ')}</p>
+      <p className="rsvp-summary metadata">{parts.map((part) => <span key={part}>{part}</span>)}</p>
       {response.note && <p className="notes">“{response.note}”</p>}
     </>
   )
@@ -68,7 +68,7 @@ export default function RsvpPage({ eventId, token }) {
   if (state.error) {
     return (
       <div className="rsvp-page">
-        <div className="rsvp-wrap rise">
+        <div className="rsvp-wrap">
           <div className="empty">
             <span className="empty-icon">
               <Warning weight="duotone" />
@@ -113,10 +113,13 @@ export default function RsvpPage({ eventId, token }) {
 
   return (
     <div className="rsvp-page">
-      <div className="rsvp-wrap rise">
+      <div className="rsvp-wrap">
         <header className="rsvp-head">
-          <EventIcon event={card} />
-          <p className="kicker">You are invited</p>
+          <div className="invitation-letterhead">
+            <span>Private invitation</span>
+            <EventIcon event={card} />
+          </div>
+          <p className="invite-addressee">Dear {rsvp.guestName},</p>
           <h1 className="rsvp-title">{card.name}</h1>
           {card.subtitle && <p className="rsvp-sub">{card.subtitle}</p>}
           <ul className="rsvp-facts">
@@ -125,7 +128,7 @@ export default function RsvpPage({ eventId, token }) {
                 <CalendarBlank weight="duotone" />
                 <span>
                   {formatDate(card.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                  {countdown && <span className="rsvp-countdown"> · {countdown}</span>}
+                  {countdown && <span className="rsvp-countdown">{countdown}</span>}
                 </span>
               </li>
             )}
@@ -140,9 +143,7 @@ export default function RsvpPage({ eventId, token }) {
 
         {!editing && response ? (
           <section className="auth-card rsvp-card">
-            <span className="rsvp-done-icon">
-              <CheckCircle weight="fill" />
-            </span>
+            <p className="reply-receipt" role="status"><CheckCircle /> Reply received</p>
             <h2 className="auth-title">Thank you, {rsvp.guestName}</h2>
             <p className="auth-sub">
               {card.hostName ? `${card.hostName} can see your answer.` : 'The hosts can see your answer.'}
@@ -158,7 +159,7 @@ export default function RsvpPage({ eventId, token }) {
           </section>
         ) : !open ? (
           <section className="auth-card rsvp-card">
-            <h2 className="auth-title">Hi {rsvp.guestName}</h2>
+            <h2 className="auth-title">Your RSVP</h2>
             <p className="auth-sub">
               {card.rsvpOn
                 ? 'Replies for this event are closed.'
@@ -167,7 +168,7 @@ export default function RsvpPage({ eventId, token }) {
           </section>
         ) : (
           <form className="auth-card rsvp-card" onSubmit={submit} noValidate>
-            <h2 className="auth-title">Hi {rsvp.guestName}</h2>
+            <h2 className="auth-title">Your RSVP</h2>
             <p className="auth-sub">
               {card.hostName ? `${card.hostName} would love to know if you can come.` : 'Please let the hosts know if you can come.'}
             </p>

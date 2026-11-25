@@ -1,4 +1,4 @@
-import { ArrowRight, Clock, Confetti, EnvelopeOpen, Gift, Users, UsersThree } from '@phosphor-icons/react'
+import { Confetti, EnvelopeOpen } from '@phosphor-icons/react'
 import { NO_CITY, effectiveCount, countBreakdown, tagAttendance } from '../lib/store.js'
 import { plural, stepOf } from '../lib/eventTypes.js'
 import { daysToGo, formatDate } from '../lib/dates.js'
@@ -23,7 +23,7 @@ function RsvpOverview({ words, summary, onDrillDown }) {
   return (
     <section className="rsvp-overview">
       <div className="hero-top">
-        <span className="hero-label">RSVP</span>
+        <h2 className="hero-label">RSVP</h2>
         <span className="hero-chip">{!words.rsvpOn ? 'replies off' : closes ? `closes ${closes}` : 'replies open'}</span>
       </div>
       <p className="rsvp-big">
@@ -41,7 +41,7 @@ function RsvpOverview({ words, summary, onDrillDown }) {
       </div>
       {s.none > 0 && words.rsvpOn && (
         <button className="link-btn rsvp-none" onClick={() => onDrillDown({ rsvp: 'none' })}>
-          {plural(s.none, words.one, words.many)} not sent a link yet <ArrowRight size={13} weight="bold" />
+          {plural(s.none, words.one, words.many)} not sent a link yet
         </button>
       )}
       {functions.length > 0 && (
@@ -130,31 +130,44 @@ export default function Dashboard({ event, words, guests, rsvps, canEdit, isOwne
   const showRsvp = guests.length > 0 && (words.rsvpOn || rsvp.none < guests.length)
 
   const countdown = daysToGo(event.date)
-  const where = [formatDate(event.date), event.venue].filter(Boolean).join(' · ')
-  const pct = totalRows ? Math.round((done / totalRows) * 100) : 0
+  const where = [formatDate(event.date), event.venue].filter(Boolean)
+  const stepCounts = new Map()
+  for (const guest of guests) {
+    const id = stepOf(words, guest.cardStatus)
+    stepCounts.set(id, (stepCounts.get(id) || 0) + 1)
+  }
 
   return (
-    <div className="dashboard rise">
+    <div className={showRsvp ? 'dashboard with-rsvp' : 'dashboard'}>
       <section className="hero-card">
         <div className="hero-top">
-          <span className="hero-label">
+          <h2 className="hero-label">
             {words.InviteWord}s {words.doneVerb}
-          </span>
+          </h2>
           {countdown && <span className="hero-chip">{countdown}</span>}
         </div>
         <p className="hero-number">
           {done}
           <span className="hero-of"> / {totalRows}</span>
         </p>
-        <div
-          className="progress"
-          role="img"
-          aria-label={`${done} of ${totalRows} ${words.inviteWords} ${words.doneVerb}`}
-        >
-          <span style={{ width: `${pct}%` }} />
-        </div>
-        <p className="hero-foot">{totalRows ? headline(words, done, totalRows) : where || headline(words, 0, 0)}</p>
-        {totalRows > 0 && where && <p className="hero-foot">{where}</p>}
+        {totalRows > 0 && (
+          <div className="delivery-breakdown" aria-label="Invitation status breakdown">
+            <div className="progress" role="img" aria-label={`${done} of ${totalRows} ${words.inviteWords} ${words.doneVerb}`}>
+              <span style={{ width: `${done / totalRows * 100}%` }} />
+            </div>
+            <div className="delivery-filters">
+              {words.steps.map(({ id, label }) => (
+                <button key={id} type="button" onClick={() => onDrillDown({ cardStatus: id })}>
+                  {label} <strong>{stepCounts.get(id) || 0}</strong>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {(totalRows > 0 || where.length === 0) && <p className="hero-foot">{headline(words, done, totalRows)}</p>}
+        {where.length > 0 && (
+          <p className="hero-foot metadata">{where.map((part, i) => <span key={i}>{part}</span>)}</p>
+        )}
       </section>
 
       {guests.length === 0 ? (
@@ -179,35 +192,20 @@ export default function Dashboard({ event, words, guests, rsvps, canEdit, isOwne
           {!showRsvp && isOwner && <RsvpNudge event={event} words={words} />}
 
           <section className="tiles">
-            <button className={notDone ? 'tile tile-accent' : 'tile'} onClick={() => onDrillDown({ cardStatus: 'not-done' })}>
-              <span className="tile-top">
-                <Clock weight="duotone" />
-                <ArrowRight weight="bold" />
-              </span>
+            <button className="tile" onClick={() => onDrillDown({ cardStatus: 'not-done' })}>
               <span className="tile-value">{notDone}</span>
               <span className="tile-label">Not {words.doneVerb} yet</span>
             </button>
             <button className="tile" onClick={() => onDrillDown({})}>
-              <span className="tile-top">
-                <Users weight="duotone" />
-                <ArrowRight weight="bold" />
-              </span>
               <span className="tile-value">{totalRows}</span>
               <span className="tile-label">{words.Many} invited</span>
             </button>
             <div className="tile">
-              <span className="tile-top">
-                <UsersThree weight="duotone" />
-              </span>
               <span className="tile-value">{totalPeople}</span>
               <span className="tile-label">Total {words.headMany}</span>
             </div>
             {words.giftsOn && (
               <button className="tile" onClick={() => onDrillDown({ gift: true })}>
-                <span className="tile-top">
-                  <Gift weight="duotone" />
-                  <ArrowRight weight="bold" />
-                </span>
                 <span className="tile-value">{giftCount}</span>
                 <span className="tile-label">{words.gifts} to give</span>
               </button>
@@ -251,8 +249,9 @@ export default function Dashboard({ event, words, guests, rsvps, canEdit, isOwne
                       <button className="row" onClick={() => onDrillDown({ city })}>
                         <span className="row-text">
                           <span className="row-title">{city === NO_CITY ? 'No city' : city}</span>
-                          <span className="row-meta">
-                            {plural(s.rows, words.one, words.many)} · {plural(s.people, words.headOne, words.headMany)}
+                          <span className="row-meta metadata">
+                            <span>{plural(s.rows, words.one, words.many)}</span>
+                            <span>{plural(s.people, words.headOne, words.headMany)}</span>
                           </span>
                         </span>
                         <span className="city-right">

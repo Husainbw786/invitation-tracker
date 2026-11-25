@@ -1,4 +1,5 @@
-// Light or dark look. 'auto' follows the phone's setting; 'light' and 'dark'
+// Light or dark look. 'auto' (the default) follows the phone's setting, so
+// the page always matches the Android status bar, which follows the phone too; 'light' and 'dark'
 // are saved on this device and set data-theme on <html>, which styles.css
 // reads. index.html applies a saved choice before the page is drawn, so
 // there is no flash of the wrong colours.
@@ -9,7 +10,7 @@ const KEY = 'invitations:theme'
 export const THEMES = ['auto', 'light', 'dark']
 
 // The browser bar colour for each look (same as --bg in styles.css).
-const BAR = { light: '#faf9f5', dark: '#262624' }
+const BAR = { light: '#f8f4f1', dark: '#181210' }
 
 const listeners = new Set()
 
@@ -24,8 +25,7 @@ export function getTheme() {
 
 export function applyTheme(theme) {
   const root = document.documentElement
-  if (theme === 'light' || theme === 'dark') root.setAttribute('data-theme', theme)
-  else root.removeAttribute('data-theme')
+  root.dataset.theme = theme
   // index.html has one theme-color per phone setting; a fixed choice wins
   // over both, and Auto puts each back.
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
@@ -36,8 +36,7 @@ export function applyTheme(theme) {
 
 export function setTheme(theme) {
   try {
-    if (theme === 'auto') localStorage.removeItem(KEY)
-    else localStorage.setItem(KEY, theme)
+    localStorage.setItem(KEY, theme)
   } catch {
     // private mode: the choice lasts until the page is closed
   }

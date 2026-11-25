@@ -5,8 +5,9 @@ import { ROLE_LABELS, acceptInvite, declineInvite, roleIn } from '../lib/events.
 import { refreshSession, resendVerification } from '../lib/auth.js'
 import InstallButton from './InstallButton.jsx'
 import SettingsSheet from './SettingsSheet.jsx'
-import EventIcon from './EventArt.jsx'
-import { formatDate } from '../lib/dates.js'
+import EventIcon, { toneOf } from './EventArt.jsx'
+import Logo from './Logo.jsx'
+import { daysToGo, formatDate } from '../lib/dates.js'
 
 function greeting() {
   const h = new Date().getHours()
@@ -106,10 +107,9 @@ export default function EventList({ session, events, invites, pendingShare, onOp
   return (
     <div className="app">
       <header className="home-top">
-        <span className="avatar" aria-hidden="true">
-          {(firstName[0] || '?').toUpperCase()}
-        </span>
+        <div className="brand-row"><Logo className="brand-mark" /><span className="brand-name">Invitations</span></div>
         <div className="top-actions">
+          <span className="avatar" aria-label={session.name}>{(firstName[0] || '?').toUpperCase()}</span>
           <InstallButton className="icon-btn" labelClassName="sr-only" />
           <button className="icon-btn" onClick={() => setSettingsOpen(true)} title="Settings" aria-label="Settings">
             <GearSix />
@@ -117,14 +117,19 @@ export default function EventList({ session, events, invites, pendingShare, onOp
         </div>
       </header>
 
-      <main className="content rise">
-        <h1 className="page-title">
-          {greeting()}, {firstName}
-        </h1>
-        <p className="page-sub">
-          {today}
-          {count > 0 && ` · ${count} ${count === 1 ? 'event' : 'events'}`}
-        </p>
+      <main className="content">
+        <div className="event-welcome">
+          <div>
+            <h1 className="page-title">
+              {greeting()}, {firstName}
+            </h1>
+            <p className="page-sub metadata">
+              <span>{today}</span>
+              {count > 0 && <span>{count} {count === 1 ? 'event' : 'events'}</span>}
+            </p>
+          </div>
+          {count > 0 && <button className="btn btn-primary" onClick={onCreate}><Plus weight="bold" /> New event</button>}
+        </div>
 
         <VerifyNote session={session} onSession={onSession} />
 
@@ -157,7 +162,7 @@ export default function EventList({ session, events, invites, pendingShare, onOp
             <h2 className="section-title">Your events</h2>
           </div>
 
-          {events === null && <p className="empty-hint">Loading your events...</p>}
+          {events === null && <p className="empty-hint">Loading your events…</p>}
 
           {events?.length === 0 && (
             <div className="empty">
@@ -173,17 +178,24 @@ export default function EventList({ session, events, invites, pendingShare, onOp
           )}
 
           {events?.length > 0 && (
-            <ul className="rows">
+            <ul className="rows event-register">
               {events.map((e) => {
                 const role = roleIn(e, session.uid)
-                const meta = [eventType(e).label, formatDate(e.date), e.venue].filter(Boolean).join(' · ')
+                const meta = [formatDate(e.date), e.venue].filter(Boolean)
+                const countdown = daysToGo(e.date)
                 return (
                   <li key={e.id}>
                     <button className="row" onClick={() => onOpen(e.id)}>
                       <EventIcon event={e} />
                       <span className="row-text">
+                        <span className="event-kind" data-tone={toneOf(e)}>{eventType(e).label}</span>
                         <span className="row-title">{e.name}</span>
-                        <span className="row-meta">{meta}</span>
+                        {meta.length > 0 && (
+                          <span className="row-meta metadata">
+                            {meta.map((part, i) => <span key={i}>{part}</span>)}
+                            {countdown && <span className="event-countdown">{countdown}</span>}
+                          </span>
+                        )}
                       </span>
                       {role !== 'owner' && <span className="badge">{ROLE_LABELS[role] || 'Helper'}</span>}
                       <CaretRight className="row-chevron" weight="bold" />
@@ -204,12 +216,6 @@ export default function EventList({ session, events, invites, pendingShare, onOp
           onClose={() => setSettingsOpen(false)}
           onLogout={onLogout}
         />
-      )}
-
-      {events?.length > 0 && (
-        <button className="fab" onClick={onCreate}>
-          <Plus weight="bold" /> New event
-        </button>
       )}
     </div>
   )

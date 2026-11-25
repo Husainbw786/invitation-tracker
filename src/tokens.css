@@ -1,0 +1,100 @@
+:root {
+  color-scheme: light;
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+  --text-xs: 0.8125rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.25rem; --text-xl: 1.5625rem; --text-2xl: 1.953rem; --text-3xl: 2.441rem;
+  --text-display-s: clamp(2.25rem, 4vw + 0.5rem, 3.75rem); --text-display: clamp(2.75rem, 5vw + 1rem, 5.25rem);
+  --text-section: clamp(2rem, 2.5vw + 1rem, 3.5rem); --text-title: clamp(1.25rem, 0.75vw + 0.875rem, 1.625rem); --text-lead: clamp(1.125rem, 0.35vw + 1rem, 1.375rem);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+  --color-error: oklch(50% 0.17 27); --color-success: oklch(46% 0.09 150);
+  --container: 1440px; --gutter: 64px; --gap-columns: 32px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
+  --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+  /* Coral (public/coral-theme.css holds the raw palette) */
+  --color-paper: var(--coral-paper);
+  --color-paper-2: var(--coral-paper-2);
+  --color-paper-3: var(--coral-paper-3);
+  --color-ink: var(--coral-print);
+  --color-ink-2: var(--coral-ink-2);
+  --color-muted: var(--coral-pencil);
+  --color-rule: var(--coral-seam);
+  --color-rule-2: var(--coral-seam-2);
+  --color-accent: var(--coral-ink);
+  --color-accent-2: var(--coral-ink);
+  --color-accent-ink: var(--coral-board-type);
+  --color-focus: var(--coral-ink);
+  --color-sheet: var(--coral-stock);
+  --color-board: var(--coral-board);
+  --color-board-type: var(--coral-board-type);
+  --color-paid: var(--coral-paid);
+  --font-display: 'General Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-display);
+  --font-prose: var(--font-body);
+  --font-outlier: 'Geist Mono', ui-monospace, monospace;
+  --color-warning: oklch(48% 0.09 70);
+  --color-scrim: oklch(20% 0.012 38 / 0.5);
+  --color-whatsapp: oklch(46% 0.09 150);
+  /* one light from the left: lit edge top-left, shade bottom-right, cast falling right */
+  --edge-stock: inset 0 1px 0 oklch(var(--coral-lit) / 0.9), inset 0 -1px 0 oklch(var(--coral-shade) / 0.07), 0 0 0 0.5px oklch(var(--coral-shade) / 0.22), 0 1px 0 oklch(var(--coral-shade) / 0.12);
+  --cast-stock: 6px 5px 10px -6px oklch(var(--coral-shade) / 0.3);
+  --cast-stock-lift: 12px 10px 18px -8px oklch(var(--coral-shade) / 0.3);
+  --press-groove: inset 1px 1.5px 2px oklch(var(--coral-shade) / 0.16), inset -1px -1px 0 oklch(var(--coral-lit) / 0.9), 0 0 0 0.5px oklch(var(--coral-shade) / 0.2);
+  --edge-board: inset 0 1px 0 oklch(var(--coral-lit) / 0.12), inset 0 -1px 0 oklch(var(--coral-deep) / 0.5), 0 0 0 0.5px oklch(var(--coral-deep) / 0.6), 0 1px 0 oklch(var(--coral-deep) / 0.85);
+  --tex-cotton: url('/textures/cotton.svg');
+  --tex-desk: url('/textures/blotter.svg');
+  --sheen-stock: linear-gradient(100deg, oklch(var(--coral-lit) / 0.6), oklch(var(--coral-lit) / 0) 55%), var(--tex-cotton);
+  --shadow-card: var(--edge-stock), var(--cast-stock);
+  --groove: var(--color-paper-2);
+  --bg: var(--color-paper);
+  --fg: var(--color-ink);
+  --card: var(--color-sheet);
+  --panel: var(--color-paper-2);
+  --hero: var(--color-sheet);
+  --primary: var(--color-board);
+  --primary-press: var(--color-ink-2);
+  --accent-text: var(--color-accent);
+  --accent-soft: var(--color-paper-2);
+  --muted: var(--color-muted);
+  --faint: var(--color-muted);
+  --border: var(--color-rule);
+  --hairline: var(--color-rule);
+  --danger: var(--color-error);
+  --danger-soft: var(--color-paper-2);
+  --warning: var(--color-warning);
+  --warning-soft: var(--color-paper-2);
+  --success: var(--color-success);
+  --success-soft: var(--color-paper-2);
+  --scrim: var(--color-scrim);
+  --ease: var(--ease-out);
+  --column: 1080px;
+  --landing-column: 1280px;
+  --radius-card: 8px; --radius-input: 6px; --radius-stock: 8px; --radius-groove: 12px; --radius-pill: 8px; --rule-hair: 1px; --rule-bar: 2px;
+  --tracking-display: -0.03em; --display-weight: 600;
+}
+
+/* Dark: the same stock lit low. Edges keep their direction but soften. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-error: oklch(76% 0.11 27); --color-success: oklch(78% 0.08 150); --color-warning: oklch(80% 0.09 75);
+  --color-whatsapp: oklch(78% 0.08 150);
+  --edge-stock: inset 0 1px 0 oklch(var(--coral-lit) / 0.07), 0 0 0 0.5px oklch(var(--coral-lit) / 0.09), 0 1px 0 oklch(var(--coral-deep) / 0.6);
+  --cast-stock: 6px 5px 12px -6px oklch(var(--coral-deep) / 0.7);
+  --cast-stock-lift: 12px 10px 20px -8px oklch(var(--coral-deep) / 0.75);
+  --press-groove: inset 1px 1.5px 3px oklch(var(--coral-deep) / 0.6), inset -1px -1px 0 oklch(var(--coral-lit) / 0.05), 0 0 0 0.5px oklch(var(--coral-lit) / 0.08);
+  --edge-board: inset 0 1px 0 oklch(var(--coral-lit) / 0.7), 0 0 0 0.5px oklch(var(--coral-deep) / 0.5), 0 1px 0 oklch(var(--coral-deep) / 0.7);
+  --sheen-stock: linear-gradient(100deg, oklch(var(--coral-lit) / 0.04), oklch(var(--coral-lit) / 0) 55%);
+  --groove: var(--coral-desk);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+    color-scheme: dark;
+    --color-error: oklch(76% 0.11 27); --color-success: oklch(78% 0.08 150); --color-warning: oklch(80% 0.09 75);
+    --color-whatsapp: oklch(78% 0.08 150);
+    --edge-stock: inset 0 1px 0 oklch(var(--coral-lit) / 0.07), 0 0 0 0.5px oklch(var(--coral-lit) / 0.09), 0 1px 0 oklch(var(--coral-deep) / 0.6);
+    --cast-stock: 6px 5px 12px -6px oklch(var(--coral-deep) / 0.7);
+    --cast-stock-lift: 12px 10px 20px -8px oklch(var(--coral-deep) / 0.75);
+    --press-groove: inset 1px 1.5px 3px oklch(var(--coral-deep) / 0.6), inset -1px -1px 0 oklch(var(--coral-lit) / 0.05), 0 0 0 0.5px oklch(var(--coral-lit) / 0.08);
+    --edge-board: inset 0 1px 0 oklch(var(--coral-lit) / 0.7), 0 0 0 0.5px oklch(var(--coral-deep) / 0.5), 0 1px 0 oklch(var(--coral-deep) / 0.7);
+    --sheen-stock: linear-gradient(100deg, oklch(var(--coral-lit) / 0.04), oklch(var(--coral-lit) / 0) 55%);
+  --groove: var(--coral-desk);
+  }
+}

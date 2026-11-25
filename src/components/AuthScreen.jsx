@@ -1,24 +1,11 @@
-import { useEffect, useState } from 'react'
-import {
-  AddressBook,
-  ArrowRight,
-  ChartPieSlice,
-  CheckCircle,
-  Confetti,
-  DeviceMobile,
-  EnvelopeSimple,
-  Printer,
-  ShieldCheck,
-  UsersThree,
-  Warning,
-  WhatsappLogo,
-  X,
-} from '@phosphor-icons/react'
+import { useRef, useState } from 'react'
+import { CheckCircle, ChatCircleText, EnvelopeSimple, ShieldCheck, UsersThree, Warning, X } from '@phosphor-icons/react'
 import { resetPassword, signIn, signInWithGoogle, signUp } from '../lib/auth.js'
 import InstallButton from './InstallButton.jsx'
-import EventIcon from './EventArt.jsx'
 import Logo from './Logo.jsx'
+import EventPreview from './EventPreview.jsx'
 import ThemeSwitch from './ThemeSwitch.jsx'
+import '../coral-landing.css'
 
 const COPY = {
   signin: { title: 'Welcome back', sub: 'Sign in to see your guest lists.', button: 'Sign in' },
@@ -27,53 +14,9 @@ const COPY = {
 }
 
 const FEATURES = [
-  {
-    icon: Confetti,
-    title: 'Any event',
-    text: 'Weddings, birthdays, Eid, aqiqah, housewarmings and more. Each event gets its own steps, words and functions.',
-  },
-  {
-    icon: EnvelopeSimple,
-    title: 'Track every invitation',
-    text: 'Pending, card written, delivered: one tap moves a family to the next step. See who is left, and who gets a gift.',
-  },
-  {
-    icon: WhatsappLogo,
-    title: 'RSVP on WhatsApp',
-    text: 'Send each family a private link. They answer in seconds with no app: coming or not, how many, which functions.',
-  },
-  {
-    icon: UsersThree,
-    title: 'Plan together',
-    text: 'Add family as editors or viewers. Everyone sees the same list, live, on their own phone.',
-  },
-  {
-    icon: ChartPieSlice,
-    title: 'Headcount at a glance',
-    text: 'Men, women and children, guests per city and per function. The number for the caterer is always ready.',
-  },
-  {
-    icon: AddressBook,
-    title: 'Straight from contacts',
-    text: "Share a contact from your phone's Contacts app, or pick several at once on Android.",
-  },
-  {
-    icon: Printer,
-    title: 'Print and export',
-    text: 'A checklist by city for delivering cards, and a CSV file for anything else.',
-  },
-  {
-    icon: DeviceMobile,
-    title: 'Made for your phone',
-    text: 'Install it like an app. Works offline, follows dark mode, and it is free.',
-  },
-]
-
-const STEPS = [
-  ['Create an event', 'Pick the kind of event, give it a name and a date.'],
-  ['Add your guests', 'Families or single guests, typed in or taken from contacts.'],
-  ['Send invitations', 'Mark cards as delivered and send RSVP links on WhatsApp.'],
-  ['Watch it come together', 'Answers and headcounts update live for everyone helping.'],
+  [EnvelopeSimple, 'Invitation delivery', 'Track each card from the first draft to delivery. Filter by city when it’s time to head out.'],
+  [ChatCircleText, 'Guest replies', 'Share private RSVP links on WhatsApp. See who is coming and how many places to set.'],
+  [UsersThree, 'Shared planning', 'Invite family members to edit or view the list. Everyone sees the latest headcount.'],
 ]
 
 // Google's own four-colour "G", as its sign-in buttons show it.
@@ -100,74 +43,11 @@ function GoogleG() {
   )
 }
 
-// A still picture of the app: an event's progress, its RSVPs and a few rows.
-// Built from the app's own styles, so it always looks like the real thing.
-function Preview() {
-  const rows = [
-    ['Shaikh Family', 'Mumbai · 4 guests', 'yes', 'Coming (4)', 'done', 'Delivered'],
-    ['Khan Family', 'Pune · 3 guests', 'maybe', 'Maybe (2)', 'progress', 'Card written'],
-    ['Mehta Family', 'Surat · 5 guests', 'waiting', 'No reply yet', 'pending', 'Pending'],
-  ]
-  return (
-    <div className="preview" aria-hidden="true">
-      <div className="preview-head">
-        <EventIcon event={{ type: 'wedding' }} size="sm" />
-        <span className="row-text">
-          <span className="row-title">Sara &amp; Ayaan</span>
-          <span className="row-meta">Wedding · Sun, 14 Feb</span>
-        </span>
-        <span className="hero-chip">85 days to go</span>
-      </div>
-      <div className="preview-stats">
-        <div className="preview-stat">
-          <span className="preview-label">Cards delivered</span>
-          <span className="preview-num">
-            18<span className="hero-of"> / 24</span>
-          </span>
-          <span className="progress">
-            <span style={{ width: '75%' }} />
-          </span>
-        </div>
-        <div className="preview-stat">
-          <span className="preview-label">RSVP</span>
-          <span className="preview-num">
-            64<span className="preview-unit"> coming</span>
-          </span>
-          <span className="preview-functions">
-            <span>mehndi 52</span>
-            <span>nikah 64</span>
-          </span>
-        </div>
-      </div>
-      <ul className="rows">
-        {rows.map(([name, meta, rsvp, rsvpText, tone, status]) => (
-          <li key={name}>
-            <div className="row">
-              <span className="row-text">
-                <span className="row-title">{name}</span>
-                <span className="row-meta">
-                  {meta}
-                  <span className={`rsvp-tag rsvp-${rsvp}`}>{rsvpText}</span>
-                </span>
-              </span>
-              <span className={`status status-${tone}`}>{status}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-// The front page for anyone signed out: what the app does, and the sign-in
-// form. Wide screens show both side by side; on a phone the page is the pitch
-// and the form slides up from the bottom.
-// `onSession` receives the session as soon as an account is ready (Firebase
-// also reports it through watchSession; this one carries the name typed at
-// sign-up, which the first auth event can miss).
+// Auth state stays mounted when the dialog is closed.
 export default function AuthScreen({ onSession }) {
   const [mode, setMode] = useState('signin') // signin | signup | reset
-  const [sheetOpen, setSheetOpen] = useState(false) // phones only
+  const dialog = useRef(null)
+  const pressedOnBackdrop = useRef(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -175,13 +55,6 @@ export default function AuthScreen({ onSession }) {
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
   const copy = COPY[mode]
-
-  useEffect(() => {
-    if (!sheetOpen) return
-    const onKey = (e) => e.key === 'Escape' && setSheetOpen(false)
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [sheetOpen])
 
   function switchTo(next) {
     setMode(next)
@@ -191,7 +64,7 @@ export default function AuthScreen({ onSession }) {
 
   function open(next) {
     switchTo(next)
-    setSheetOpen(true)
+    dialog.current?.showModal()
   }
 
   async function submit(e) {
@@ -228,99 +101,71 @@ export default function AuthScreen({ onSession }) {
   }
 
   return (
-    <div className="landing">
-      <main className="pitch">
-        <div className="pitch-inner">
-          <header className="pitch-top">
-            <div className="brand-row">
-              <Logo className="brand-mark" />
-              <span className="brand-name">Invitations</span>
-            </div>
-            <button type="button" className="btn btn-small btn-primary pitch-signin" onClick={() => open('signin')}>
-              Sign in <ArrowRight size={14} weight="bold" />
-            </button>
-          </header>
-
-          <section className="pitch-hero rise">
-            <p className="kicker">Guest lists for every occasion</p>
-            <h1 className="pitch-title">Every guest, every invitation, every RSVP. In one list.</h1>
-            <p className="pitch-lead">
-              Weddings, birthdays, Eid and more. Track who got their invitation, collect RSVPs on
-              WhatsApp, and plan it with family, all from your phone.
-            </p>
-            <div className="pitch-ctas">
-              <button type="button" className="btn btn-dark" onClick={() => open('signup')}>
-                Get started free
-              </button>
-              <button type="button" className="btn" onClick={() => open('signin')}>
-                I have an account
-              </button>
-            </div>
-          </section>
-
-          <Preview />
-
-          <section className="pitch-section">
-            <p className="kicker">What it does</p>
-            <h2 className="pitch-h2">Everything the guest list needs</h2>
-            <ul className="features">
-              {FEATURES.map(({ icon: Icon, title, text }) => (
-                <li key={title} className="feature">
-                  <span className="feature-icon" aria-hidden="true">
-                    <Icon weight="duotone" />
-                  </span>
-                  <span>
-                    <strong>{title}</strong>
-                    <span className="feature-text">{text}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="pitch-section">
-            <p className="kicker">How it works</p>
-            <h2 className="pitch-h2">Ready in four steps</h2>
-            <ol className="how">
-              {STEPS.map(([title, text], i) => (
-                <li key={title}>
-                  <span className="how-num">{i + 1}</span>
-                  <span>
-                    <strong>{title}</strong>
-                    <span className="feature-text">{text}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </section>
-
-          <section className="pitch-final">
-            <h2 className="pitch-h2">Start your list today</h2>
-            <p className="pitch-lead">Free, on any phone or computer. No app store needed.</p>
-            <button type="button" className="btn btn-primary btn-block" onClick={() => open('signup')}>
-              Create your free account <ArrowRight size={16} weight="bold" />
-            </button>
-          </section>
-
-          <footer className="pitch-foot">
-            <ShieldCheck size={16} weight="duotone" />
-            <span>
-              Your lists are private. Only you and the people you add can see them.{' '}
-              <a href="/privacy.html">Privacy policy</a>
-            </span>
-          </footer>
-          <ThemeSwitch className="pitch-theme" />
+    <div className="landing coral-landing">
+      <header className="pitch-top">
+        <div className="pitch-inner pitch-masthead">
+          <div className="brand-row">
+            <Logo className="brand-mark" />
+            <span className="brand-name">Invitations</span>
+          </div>
+          <nav className="mast-links" aria-label="Product">
+            <a href="#event-preview">Product tour</a>
+            <a href="#features-heading">Features</a>
+          </nav>
+          <button type="button" className="btn pitch-signin" onClick={() => open('signin')}>Sign in</button>
         </div>
+      </header>
+
+      <main className="pitch">
+        <EventPreview>
+          <div className="pitch-intro">
+            <h1 className="pitch-title">You’re invited.<br />Who’s coming?</h1>
+            <p className="pitch-lead">From the first invitation to the final headcount, keep every guest and reply on one shared list.</p>
+            <div className="pitch-ctas">
+              <button type="button" className="btn cap-button" onClick={() => open('signup')}>
+                Create an account
+              </button>
+              <a className="btn tour-link" href="#event-preview">Try the guest list</a>
+            </div>
+          </div>
+        </EventPreview>
+
+        <section className="pitch-features" aria-labelledby="features-heading">
+          <div className="pitch-inner pitch-section">
+            <h2 id="features-heading" className="pitch-h2">How it works</h2>
+            <dl className="features">
+              {FEATURES.map(([Icon, title, text]) => (
+                <div key={title} className="feature">
+                  <dt><Icon size={24} weight="duotone" aria-hidden="true" />{title}</dt>
+                  <dd>{text}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+
       </main>
 
-      {sheetOpen && <div className="auth-scrim" onClick={() => setSheetOpen(false)} />}
+      <footer className="pitch-inner pitch-foot">
+        <p><ShieldCheck size={18} aria-hidden="true" /> <span>Your lists are private. Only you and the people you add can see them. <a href="/privacy.html">Privacy policy</a></span></p>
+        <ThemeSwitch className="pitch-theme" />
+      </footer>
 
-      <aside className={sheetOpen ? 'auth-panel open' : 'auth-panel'} aria-label="Sign in">
+      <dialog
+        ref={dialog}
+        className="auth-panel"
+        aria-labelledby="auth-title"
+        onPointerDown={(e) => (pressedOnBackdrop.current = e.target === e.currentTarget)}
+        onClick={(e) => {
+          if (pressedOnBackdrop.current && e.target === e.currentTarget) dialog.current.close()
+          pressedOnBackdrop.current = false
+        }}
+      >
         <form className="auth-card" onSubmit={submit} noValidate>
-          <button type="button" className="close-btn sheet-close" onClick={() => setSheetOpen(false)} aria-label="Close">
+          <button type="button" className="close-btn sheet-close" onClick={() => dialog.current.close()} aria-label="Close">
             <X />
           </button>
-          <h2 className="auth-title">{copy.title}</h2>
+          <h2 id="auth-title" className="auth-title">{copy.title}</h2>
           <p className="auth-sub">{copy.sub}</p>
 
           {mode !== 'reset' && (
@@ -389,9 +234,8 @@ export default function AuthScreen({ onSession }) {
             </p>
           )}
 
-          <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
+          <button type="submit" className="btn btn-primary btn-block" disabled={busy} aria-busy={busy}>
             {busy ? 'Please wait...' : copy.button}
-            {!busy && <ArrowRight size={16} weight="bold" />}
           </button>
 
           <p className="auth-switch">
@@ -413,7 +257,7 @@ export default function AuthScreen({ onSession }) {
           </p>
           <InstallButton className="btn btn-small btn-ghost auth-install" />
         </form>
-      </aside>
+      </dialog>
     </div>
   )
 }
