@@ -292,3 +292,22 @@ button.status { min-height: 44px; max-width: 43%; }
   .btn, .fab, .event-register .row { transition: none; }
   .btn:hover:not(:disabled), .event-register .row:hover { transform: none; }
 }
+
+/* ---------- Add many: people picked on the Android contacts screen ---------- */
+.bulk-hint { margin-bottom: var(--space-sm); }
+.bulk-list { margin: 0 0 var(--space-md); padding: 0; list-style: none; border-block: 1px solid var(--border); }
+.bulk-row { display: flex; align-items: center; gap: var(--space-xs); padding-block: var(--space-xs); }
+.bulk-row + .bulk-row { border-top: 1px solid var(--border); }
+.bulk-pick { display: flex; flex: 1; align-items: center; gap: var(--space-sm); min-width: 0; }
+.bulk-pick input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 20px; accent-color: var(--color-board); }
+.bulk-text { display: grid; flex: 1; min-width: 0; }
+.bulk-name {
+  min-height: 36px; padding: 0 var(--space-xs); margin-left: calc(-1 * var(--space-xs));
+  border: 1px solid transparent; border-radius: var(--radius-input);
+  background: transparent; color: var(--fg); font-weight: 600;
+}
+.bulk-name:hover, .bulk-name:focus { border-color: var(--muted); background: var(--card); }
+.bulk-meta { color: var(--muted); font-size: 13px; }
+.bulk-dup { color: var(--color-warning); }
+.bulk-done { color: var(--color-paid); font-weight: 600; }
+.bulk-row.off .bulk-name { color: var(--muted); }

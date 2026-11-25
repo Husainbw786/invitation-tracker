@@ -22,6 +22,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="in.husainbw.invitations">
 
+    <!-- Our own addition (see ContactsActivity.java): read contacts so people can
+         pick guests from them. Only the people they tick are saved. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
     
 
     
@@ -175,6 +179,22 @@
             
 
             
+        </activity>
+
+        <!-- Our own addition: the contacts screen, opened from the web app with
+             intent://contacts?return=...#Intent;scheme=invitationsapp;package=...;end -->
+        <activity android:name=".ContactsActivity"
+            android:exported="true"
+            android:label="Pick from contacts"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar"
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="invitationsapp" android:host="contacts" />
+            </intent-filter>
         </activity>
 
         <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />

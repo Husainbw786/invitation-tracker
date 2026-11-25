@@ -47,8 +47,12 @@ public class LauncherActivity
         // Get the original launch Url.
         Uri uri = super.getLaunchingUrl();
 
-        
-
+        // Our own addition: tell the web app this build has the native contacts
+        // screen (ContactsActivity), so its Contacts button opens it. Older
+        // builds don't send this and keep the browser's picker.
+        if (uri != null && uri.getQueryParameter("app") == null) {
+            uri = uri.buildUpon().appendQueryParameter("app", "android-contacts:" + getPackageName()).build();
+        }
         return uri;
     }
 }
